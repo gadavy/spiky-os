@@ -5,7 +5,7 @@ use spin::Mutex;
 use writer::Writer;
 
 pub mod color;
-mod font;
+mod fonts;
 mod writer;
 
 pub static WRITER: Mutex<Option<Writer>> = Mutex::new(None);

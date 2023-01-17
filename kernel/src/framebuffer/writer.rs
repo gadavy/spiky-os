@@ -1,7 +1,7 @@
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 
 use crate::framebuffer::color::{Color, BLACK, WHITE};
-use crate::framebuffer::font::{CHARACTER_HEIGHT, CHARACTER_WIDTH, FONT_BASIC};
+use crate::framebuffer::fonts::{CHARACTER_HEIGHT, CHARACTER_WIDTH, FONT_BASIC};
 
 pub struct Writer {
     info: FrameBufferInfo, // TODO: replace to fields???
@@ -123,7 +123,7 @@ impl Writer {
     }
 }
 
-impl<'a> core::fmt::Write for Writer {
+impl core::fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         for c in s.chars() {
             if c == '\n' {
