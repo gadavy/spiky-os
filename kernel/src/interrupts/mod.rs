@@ -18,6 +18,7 @@ pub fn init() {
 
     // Setup interrupts.
     idt[InterruptsVector::Timer.into()].set_handler_fn(timer_interrupt_handler);
+    idt[InterruptsVector::Keyboard.into()].set_handler_fn(keyboard_interrupt_handler);
 
     unsafe {
         idt.load_unsafe();
@@ -47,6 +48,19 @@ impl From<InterruptsVector> for usize {
 }
 
 extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    crate::print!("T");
+
     let mut pics = PICS.lock();
     unsafe { pics.notify_end_of_interrupt(InterruptsVector::Timer.into()) }
+}
+
+extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    crate::print!("K");
+
+    // read and skip value
+    let mut port = x86_64::instructions::port::Port::<u8>::new(0x60);
+    unsafe { port.read() };
+
+    let mut pics = PICS.lock();
+    unsafe { pics.notify_end_of_interrupt(InterruptsVector::Keyboard.into()) }
 }
