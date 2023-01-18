@@ -8,14 +8,23 @@ mod framebuffer;
 mod gdt;
 mod interrupts;
 
-bootloader_api::entry_point!(entry);
+bootloader_api::entry_point!(kernel_entry);
 
-fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
-    match info.framebuffer.as_mut() {
-        Some(buf) => framebuffer::init(buf.info(), buf.buffer_mut()),
-        None => panic!("no framebuffer"),
+fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
+    kernel_init(info);
+
+    loop {
+        x86_64::instructions::hlt()
     }
+}
 
+fn kernel_init(info: &'static mut bootloader_api::BootInfo) {
+    let fb = match info.framebuffer.as_mut() {
+        Some(framebuffer) => framebuffer,
+        None => panic!("no framebuffer"),
+    };
+
+    framebuffer::init(fb.info(), fb.buffer_mut());
     println!("Framebuffer initialized");
 
     gdt::init();
@@ -24,16 +33,7 @@ fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     interrupts::init(gdt::DOUBLE_FAULT_IST_INDEX);
     println!("IDT initialized");
 
-    fn stack_overflow() {
-        stack_overflow(); // for each recursion, the return address is pushed
-    }
-
-    // trigger a stack overflow
-    stack_overflow();
-
-    loop {
-        x86_64::instructions::hlt()
-    }
+    println!("kernel initialized successfully")
 }
 
 #[cfg_attr(not(test), panic_handler)]
