@@ -32,7 +32,9 @@ macro_rules! println {
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
 
-    if let Some(w) = WRITER.lock().as_mut() {
-        w.write_fmt(args).unwrap()
-    }
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        if let Some(w) = WRITER.lock().as_mut() {
+            w.write_fmt(args).unwrap()
+        };
+    });
 }

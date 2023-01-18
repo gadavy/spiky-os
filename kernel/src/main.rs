@@ -13,9 +13,7 @@ bootloader_api::entry_point!(kernel_entry);
 fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     kernel_init(info);
 
-    loop {
-        x86_64::instructions::hlt()
-    }
+    hlt_loop();
 }
 
 fn kernel_init(info: &'static mut bootloader_api::BootInfo) {
@@ -30,10 +28,16 @@ fn kernel_init(info: &'static mut bootloader_api::BootInfo) {
     gdt::init();
     println!("GDT initialized");
 
-    interrupts::init(gdt::DOUBLE_FAULT_IST_INDEX);
+    interrupts::init();
     println!("IDT initialized");
 
     println!("kernel initialized successfully")
+}
+
+pub fn hlt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
 }
 
 #[cfg_attr(not(test), panic_handler)]
