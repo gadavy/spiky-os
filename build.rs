@@ -15,4 +15,5 @@ fn main() {
 
     // pass the disk image paths as env variables to the `main.rs`
     println!("cargo:rustc-env=BIOS_PATH={}", bios_path.display());
+    println!("cargo:warning=image path: {}", bios_path.display());
 }

@@ -26,7 +26,7 @@ pub fn init(idt: &mut InterruptDescriptorTable) {
         .set_handler_fn(stack_segment_fault_handler);
     idt.general_protection_fault
         .set_handler_fn(general_protection_fault_handler);
-    idt.page_fault.set_handler_fn(early_page_fault_handler);
+    idt.page_fault.set_handler_fn(page_fault_handler);
     // reserved: 0x0F
     idt.x87_floating_point
         .set_handler_fn(x87_floating_point_handler);
@@ -111,12 +111,9 @@ extern "x86-interrupt" fn general_protection_fault_handler(frame: InterruptStack
     );
 }
 
-extern "x86-interrupt" fn early_page_fault_handler(
-    frame: InterruptStackFrame,
-    err: PageFaultErrorCode,
-) {
+extern "x86-interrupt" fn page_fault_handler(frame: InterruptStackFrame, err: PageFaultErrorCode) {
     panic!(
-        "\nEXCEPTION: PAGE FAULT (early handler) while accessing {:#x}\n\
+        "\nEXCEPTION: PAGE FAULT while accessing {:#x}\n\
         error code: {:?}\n{:#X?}",
         Cr2::read_raw(),
         err,

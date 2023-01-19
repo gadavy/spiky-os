@@ -2,6 +2,7 @@ use bootloader_api::info::FrameBufferInfo;
 use core::fmt;
 use spin::Mutex;
 
+use crate::interrupts;
 use writer::Writer;
 
 pub mod color;
@@ -12,9 +13,13 @@ pub static WRITER: Mutex<Option<Writer>> = Mutex::new(None);
 
 pub fn init(info: FrameBufferInfo, buf: &'static mut [u8]) {
     let mut writer = Writer::new(info, buf);
-    writer.clean();
+    writer.clear();
 
     WRITER.lock().replace(writer);
+}
+
+pub fn clear() {
+    WRITER.lock().as_mut().map(Writer::clear);
 }
 
 #[macro_export]
@@ -32,9 +37,7 @@ macro_rules! println {
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
 
-    x86_64::instructions::interrupts::without_interrupts(|| {
-        if let Some(w) = WRITER.lock().as_mut() {
-            w.write_fmt(args).unwrap()
-        };
+    interrupts::without_interrupts(|| {
+        WRITER.lock().as_mut().map(|w| w.write_fmt(args));
     });
 }

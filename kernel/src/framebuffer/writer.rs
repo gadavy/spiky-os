@@ -49,7 +49,7 @@ impl Writer {
         x <= self.width() && y <= self.height()
     }
 
-    pub fn clean(&mut self) {
+    pub fn clear(&mut self) {
         self.buf.fill(0);
         self.current_x = 0;
         self.current_y = 0;
@@ -94,10 +94,10 @@ impl Writer {
                     let index = offset_x - 1;
                     let char_font = FONT_BASIC[character as usize][offset_y];
 
-                    if get_bit(char_font, index) != 0 {
-                        self.fg_color
-                    } else {
+                    if get_bit(char_font, index) == 0 {
                         self.bg_color
+                    } else {
+                        self.fg_color
                     }
                 } else {
                     self.bg_color
@@ -141,7 +141,7 @@ impl core::fmt::Write for Writer {
             }
 
             if self.current_y >= self.max_y {
-                self.clean();
+                self.clear();
             }
 
             self.print_char(c, self.current_x, self.current_y);

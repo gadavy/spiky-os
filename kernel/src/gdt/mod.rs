@@ -1,7 +1,6 @@
 use spin::{Lazy, Mutex};
-use x86_64::instructions::segmentation::{Segment, CS, SS};
 use x86_64::instructions::tables::load_tss;
-use x86_64::registers::segmentation::{DS, ES};
+use x86_64::registers::segmentation::{Segment, CS, DS, ES, SS};
 use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::VirtAddr;
@@ -25,7 +24,7 @@ static TSS: Lazy<TaskStateSegment> = Lazy::new(|| {
 static GDT: Mutex<Gdt> = Mutex::new(Gdt::new());
 
 pub fn init() {
-    GDT.lock().init(&TSS)
+    GDT.lock().init(&TSS);
 }
 
 pub struct Gdt {

@@ -1,5 +1,5 @@
-pub const BLACK: Color = Color::new(0x000000);
-pub const WHITE: Color = Color::new(0xFFFFFF);
+pub const BLACK: Color = Color::new(0x0000_0000);
+pub const WHITE: Color = Color::new(0x00ff_ffff);
 
 #[derive(Copy, Clone)]
 pub struct Color {
@@ -9,6 +9,7 @@ pub struct Color {
 }
 
 impl Color {
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn new(value: u32) -> Self {
         Self {
             red: (value >> 16) as u8,
