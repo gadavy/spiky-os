@@ -18,23 +18,18 @@ impl Color {
     }
 
     #[inline]
-    pub fn red(self) -> u8 {
-        self.red
-    }
-
-    #[inline]
-    pub fn green(self) -> u8 {
-        self.green
-    }
-
-    #[inline]
-    pub fn blue(self) -> u8 {
-        self.blue
-    }
-
-    #[inline]
     pub fn gray(self) -> u8 {
         self.red / 3 + self.blue / 3 + self.green / 3
+    }
+
+    #[inline]
+    pub fn rgb_bytes(self) -> [u8; 4] {
+        [self.red, self.green, self.blue, 0]
+    }
+
+    #[inline]
+    pub fn bgr_bytes(self) -> [u8; 4] {
+        [self.blue, self.green, self.red, 0]
     }
 }
 

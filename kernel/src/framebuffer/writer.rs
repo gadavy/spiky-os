@@ -60,15 +60,15 @@ impl Writer {
             return;
         }
 
-        let pixel_offset = y * self.info.stride + x;
-        let byte_start = pixel_offset * self.info.bytes_per_pixel;
-        let byte_end = byte_start + self.info.bytes_per_pixel;
+        let bpp = self.info.bytes_per_pixel;
+        let byte_start = (y * self.info.stride + x) * bpp;
+        let byte_end = byte_start + bpp;
 
         let buf = &mut self.buf[byte_start..byte_end];
 
         match self.info.pixel_format {
-            PixelFormat::Rgb => buf.copy_from_slice(&[color.red(), color.green(), color.blue(), 0]),
-            PixelFormat::Bgr => buf.copy_from_slice(&[color.blue(), color.green(), color.red(), 0]),
+            PixelFormat::Rgb => buf.copy_from_slice(&color.rgb_bytes()[..bpp]),
+            PixelFormat::Bgr => buf.copy_from_slice(&color.bgr_bytes()[..bpp]),
             PixelFormat::U8 => buf.fill(color.gray()),
             format => {
                 unimplemented!("pixel format {:?} unimplemented", format)
