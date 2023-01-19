@@ -1,61 +1,38 @@
 use bootloader_api::info::FrameBufferInfo;
+use core::fmt;
 use spin::Mutex;
+
+use writer::Writer;
 
 pub mod color;
 mod font;
-mod printer;
+mod writer;
 
-pub use printer::Printer;
+pub static WRITER: Mutex<Option<Writer>> = Mutex::new(None);
 
-pub struct Framebuffer {
-    info: FrameBufferInfo, // TODO: replace to fields???
-    buf: &'static mut [u8],
+pub fn init(info: FrameBufferInfo, buf: &'static mut [u8]) {
+    let mut writer = Writer::new(info, buf);
+    writer.clean();
+
+    WRITER.lock().replace(writer);
 }
 
-impl Framebuffer {
-    pub fn new(info: FrameBufferInfo, buf: &'static mut [u8]) -> Self {
-        Self { info, buf }
-    }
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::framebuffer::_print(format_args!($($arg)*)));
+}
 
-    #[inline]
-    pub fn width(&self) -> usize {
-        self.info.width
-    }
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
 
-    #[inline]
-    pub fn height(&self) -> usize {
-        self.info.height
-    }
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
 
-    pub fn feel<T: color::Color>(&mut self, color: T) {
-        for x in 0..self.width() {
-            for y in 0..self.height() {
-                self.draw(x, y, color)
-            }
-        }
-    }
-
-    pub fn draw<T: color::Color>(&mut self, x: usize, y: usize, color: T) {
-        if !self.contains(x, y) {
-            return;
-        }
-
-        let range = self.buffer_range(x, y);
-        let buf = &mut self.buf[range];
-
-        color.write_to_slice(self.info.pixel_format, self.info.bytes_per_pixel, buf);
-    }
-
-    #[inline]
-    fn contains(&self, x: usize, y: usize) -> bool {
-        x <= self.width() && y <= self.height()
-    }
-
-    fn buffer_range(&self, x: usize, y: usize) -> core::ops::Range<usize> {
-        let pixel_offset = y * self.info.stride + x;
-        let byte_start = pixel_offset * self.info.bytes_per_pixel;
-        let byte_end = byte_start + self.info.bytes_per_pixel;
-
-        byte_start..byte_end
+    if let Some(w) = WRITER.lock().as_mut() {
+        w.write_fmt(args).unwrap()
     }
 }

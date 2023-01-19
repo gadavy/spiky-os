@@ -8,7 +8,7 @@ fn main() {
     let kernel = PathBuf::from(std::env::var_os("CARGO_BIN_FILE_KERNEL_kernel").unwrap());
 
     // create a BIOS disk image
-    let bios_path = out_dir.join("bios.img");
+    let bios_path = out_dir.join("spiky-os-bios.img");
     bootloader::BiosBoot::new(&kernel)
         .create_disk_image(&bios_path)
         .unwrap();

@@ -1,57 +1,45 @@
-use bootloader_api::info::PixelFormat;
-
-pub trait Color: Copy + Clone {
-    fn red(self) -> u8;
-
-    fn green(self) -> u8;
-
-    fn blue(self) -> u8;
-
-    fn gray(self) -> u8 {
-        self.red() / 3 + self.blue() / 3 + self.green() / 3
-    }
-
-    fn write_to_slice(self, format: PixelFormat, size: usize, buf: &mut [u8]) {
-        match (format, size) {
-            (PixelFormat::Rgb, 3) => buf.copy_from_slice(&[self.red(), self.green(), self.blue()]),
-            (PixelFormat::Bgr, 3) => buf.copy_from_slice(&[self.blue(), self.green(), self.red()]),
-            (PixelFormat::U8, 1) => buf.copy_from_slice(&[self.gray()]),
-            (format, size) => {
-                unimplemented!(
-                    "pixel format {:?} with bytes per pixel {} not supported",
-                    format,
-                    size
-                )
-            }
-        }
-    }
-}
-
-pub const BLACK: Rgb = Rgb::new(0x000000);
-pub const WAIT: Rgb = Rgb::new(0xffffff);
+pub const BLACK: Color = Color::new(0x000000);
+pub const WHITE: Color = Color::new(0xFFFFFF);
 
 #[derive(Copy, Clone)]
-pub struct Rgb([u8; 3]);
+pub struct Color {
+    red: u8,
+    green: u8,
+    blue: u8,
+}
 
-impl Rgb {
+impl Color {
     pub const fn new(value: u32) -> Self {
-        Self([(value >> 16) as u8, (value >> 8) as u8, value as u8])
+        Self {
+            red: (value >> 16) as u8,
+            green: (value >> 8) as u8,
+            blue: value as u8,
+        }
+    }
+
+    #[inline]
+    pub fn red(self) -> u8 {
+        self.red
+    }
+
+    #[inline]
+    pub fn green(self) -> u8 {
+        self.green
+    }
+
+    #[inline]
+    pub fn blue(self) -> u8 {
+        self.blue
+    }
+
+    #[inline]
+    pub fn gray(self) -> u8 {
+        self.red / 3 + self.blue / 3 + self.green / 3
     }
 }
 
-impl Color for Rgb {
-    #[inline]
-    fn red(self) -> u8 {
-        self.0[0]
-    }
-
-    #[inline]
-    fn green(self) -> u8 {
-        self.0[1]
-    }
-
-    #[inline]
-    fn blue(self) -> u8 {
-        self.0[2]
+impl From<u32> for Color {
+    fn from(value: u32) -> Self {
+        Color::new(value)
     }
 }
