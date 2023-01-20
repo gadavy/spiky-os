@@ -2,7 +2,6 @@ use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
 use crate::gdt::DOUBLE_FAULT_IST_INDEX;
-use crate::println;
 
 pub fn init(idt: &mut InterruptDescriptorTable) {
     idt.divide_error.set_handler_fn(divide_error_handler);
@@ -47,7 +46,7 @@ extern "x86-interrupt" fn divide_error_handler(frame: InterruptStackFrame) {
 }
 
 extern "x86-interrupt" fn debug_handler(frame: InterruptStackFrame) {
-    println!("\nEXCEPTION: DEBUG EXCEPTION\n{:#X?}", frame);
+    log::warn!("\nEXCEPTION: DEBUG EXCEPTION\n{:#X?}", frame);
     // don't halt here, this isn't a fatal/permanent failure, just a brief pause.
 }
 
@@ -56,7 +55,7 @@ extern "x86-interrupt" fn nmi_handler(frame: InterruptStackFrame) {
 }
 
 extern "x86-interrupt" fn breakpoint_handler(frame: InterruptStackFrame) {
-    println!("\nEXCEPTION: BREAKPOINT\n{:#X?}", frame);
+    log::warn!("\nEXCEPTION: BREAKPOINT\n{:#X?}", frame);
     // don't halt here, this isn't a fatal/permanent failure, just a brief pause.
 }
 

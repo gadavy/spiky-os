@@ -1,5 +1,5 @@
 #![feature(abi_x86_interrupt)]
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 #![no_main]
 
 use core::panic::PanicInfo;
@@ -8,28 +8,30 @@ mod drivers;
 mod framebuffer;
 mod gdt;
 mod interrupts;
+mod logger;
 
 bootloader_api::entry_point!(kernel_entry);
 
 fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
+    logger::init();
     let fb = info.framebuffer.as_mut().expect("no framebuffer");
 
     framebuffer::init(fb.info(), fb.buffer_mut());
-    println!("Framebuffer initialized.");
+    log::debug!("Framebuffer initialized.");
 
     gdt::init();
-    println!("GDT initialized.");
+    log::debug!("GDT initialized.");
 
     interrupts::init();
-    println!("IDT initialized.");
+    log::debug!("IDT initialized.");
 
     drivers::init_default();
-    println!("Drivers initialized.");
+    log::debug!("Drivers initialized.");
 
     interrupts::enable();
-    println!("Interrupts enabled.");
+    log::debug!("Interrupts enabled.");
 
-    println!("Kernel initialized successfully.\n");
+    log::debug!("Kernel initialized successfully.\n");
 
     loop {
         x86_64::instructions::hlt();
@@ -38,7 +40,7 @@ fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
 
 #[cfg_attr(not(test), panic_handler)]
 fn panic(info: &PanicInfo) -> ! {
-    println!("{info}");
+    log::error!("{info}");
 
     loop {}
 }
