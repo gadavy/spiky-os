@@ -7,14 +7,14 @@ pub use geometry::*;
 mod color;
 mod geometry;
 
-pub static FRAMEBUFFER: Mutex<Framebuffer> = Mutex::new(Framebuffer::new());
+pub static FRAMEBUFFER: Mutex<FramebufferDriver> = Mutex::new(FramebufferDriver::empty());
 
-pub struct Framebuffer {
+pub struct FramebufferDriver {
     inner: Option<InnerFrameBuffer>,
 }
 
-impl Framebuffer {
-    const fn new() -> Self {
+impl FramebufferDriver {
+    const fn empty() -> Self {
         Self { inner: None }
     }
 

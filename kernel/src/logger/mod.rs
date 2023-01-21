@@ -1,4 +1,5 @@
 use crate::drivers::framebuffer::{Color, Point, WHITE};
+use crate::drivers::uart;
 use crate::interrupts::without_interrupts;
 use bootloader_api::info::FrameBufferInfo;
 use log::{Level, LevelFilter, Metadata, Record};
@@ -45,6 +46,8 @@ impl log::Log for KernelLogger {
             if let Some(w) = self.inner.lock().as_mut() {
                 writeln!(w.with_color(record.level().into()), "{}", record.args()).unwrap();
             }
+
+            writeln!(uart::UART.lock(), "[{}] {}", record.level(), record.args()).unwrap();
         });
     }
 

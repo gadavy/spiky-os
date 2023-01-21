@@ -18,6 +18,9 @@ fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     drivers::init_framebuffer(fb.info(), fb.buffer_mut());
     log::debug!("Framebuffer initialized");
 
+    drivers::init_uart();
+    log::debug!("UART initialized");
+
     gdt::init();
     log::debug!("GDT initialized");
 
