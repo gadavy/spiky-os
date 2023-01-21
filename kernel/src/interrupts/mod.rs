@@ -30,6 +30,8 @@ pub fn init() {
         idt.load_unsafe();
         PICS.lock().initialize();
     };
+
+    log::debug!("IDT initialized");
 }
 
 /// Enable interrupts.

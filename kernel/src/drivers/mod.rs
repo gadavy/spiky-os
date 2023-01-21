@@ -8,14 +8,23 @@ pub fn init_framebuffer(info: FrameBufferInfo, buf: &'static mut [u8]) {
     let mut fb = framebuffer::FRAMEBUFFER.lock();
     fb.init(info, buf);
     fb.fill(framebuffer::BLACK);
+    drop(fb);
+
+    log::debug!("Framebuffer initialized");
 }
 
 pub fn init_keyboard() {
     keyboard::PC_KEYBOARD.lock().init(default_keyboard_handler);
+
+    log::debug!("Keyboard driver initialized");
 }
 
 pub fn init_uart() {
-    uart::UART.lock().init(uart::COM1_BASE);
+    if uart::UART.lock().init(uart::COM1_BASE) {
+        log::debug!("UART with base `0x{:02x}` initialized", uart::COM1_BASE);
+    } else {
+        log::error!("UART with base `0x{:02x}` not supported", uart::COM1_BASE);
+    }
 }
 
 fn default_keyboard_handler(c: char) {

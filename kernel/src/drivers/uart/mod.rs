@@ -16,11 +16,13 @@ impl UartDriver {
         }
     }
 
-    pub fn init(&self, base: u16) {
+    pub fn init(&self, base: u16) -> bool {
         if let Some(inner) = InnerController::new(base) {
             self.inner.lock().replace(inner);
+
+            true
         } else {
-            log::warn!("UART with base `0x{base:02x}` not supported");
+            false
         }
     }
 

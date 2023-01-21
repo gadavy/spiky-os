@@ -25,6 +25,8 @@ static GDT: Mutex<Gdt> = Mutex::new(Gdt::new());
 
 pub fn init() {
     GDT.lock().init(&TSS);
+
+    log::debug!("GDT initialized");
 }
 
 pub struct Gdt {

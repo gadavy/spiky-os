@@ -13,23 +13,24 @@ bootloader_api::entry_point!(kernel_entry);
 
 fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     let fb = info.framebuffer.as_mut().expect("no framebuffer");
+
+    // Init logger.
     logger::init(fb.info());
 
-    drivers::init_framebuffer(fb.info(), fb.buffer_mut());
-    log::debug!("Framebuffer initialized");
-
+    // Init base drivers.
     drivers::init_uart();
-    log::debug!("UART initialized");
+    drivers::init_framebuffer(fb.info(), fb.buffer_mut());
 
+    // Init global descriptor table.
     gdt::init();
-    log::debug!("GDT initialized");
 
+    // Init interrupts.
     interrupts::init();
-    log::debug!("IDT initialized");
 
+    // Init other drivers.
     drivers::init_keyboard();
-    log::debug!("Keyboard driver initialized");
 
+    // Enable interrupts.
     interrupts::enable();
     log::debug!("Interrupts enabled");
 
