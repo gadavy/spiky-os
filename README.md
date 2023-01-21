@@ -1,3 +1,21 @@
+# SpikyOS
+
+SpikyOS is a hobby operating system written in [Rust](https://www.rust-lang.org/).
+
+## Create a bootable USB (mac)
+
+```shell
+cargo build --release
+
+diskutil list
+
+diskutil unmountDisk /dev/disk2
+
+sudo dd if=spiky-os.img of=/dev/disk2 bs=1m
+
+diskutil eject /dev/disk2
+```
+
 ## Links
 
 blog:
@@ -14,15 +32,3 @@ os from blog, but use bootloader 0.10
 https://github.com/HalogenPowered/os/tree/master/src
 
 https://github.com/theseus-os/Theseus/blob/theseus_main/kernel/pci/src/lib.rs
-
-## Create a bootable USB (mac)
-
-```shell
-diskutil list
-
-diskutil unmountDisk /dev/disk2
-
-sudo dd if=spiky-os.img of=/dev/disk2 bs=1m
-
-diskutil eject /dev/disk2
-```
