@@ -5,7 +5,6 @@
 use core::panic::PanicInfo;
 
 mod drivers;
-mod framebuffer;
 mod gdt;
 mod interrupts;
 mod logger;
@@ -13,25 +12,25 @@ mod logger;
 bootloader_api::entry_point!(kernel_entry);
 
 fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
-    logger::init();
     let fb = info.framebuffer.as_mut().expect("no framebuffer");
+    logger::init(fb.info());
 
-    framebuffer::init(fb.info(), fb.buffer_mut());
-    log::debug!("Framebuffer initialized.");
+    drivers::init_framebuffer(fb.info(), fb.buffer_mut());
+    log::debug!("Framebuffer initialized");
 
     gdt::init();
-    log::debug!("GDT initialized.");
+    log::debug!("GDT initialized");
 
     interrupts::init();
-    log::debug!("IDT initialized.");
+    log::debug!("IDT initialized");
 
-    drivers::init_default();
-    log::debug!("Drivers initialized.");
+    drivers::init_keyboard();
+    log::debug!("Keyboard driver initialized");
 
     interrupts::enable();
-    log::debug!("Interrupts enabled.");
+    log::debug!("Interrupts enabled");
 
-    log::debug!("Kernel initialized successfully.\n");
+    log::debug!("Kernel initialized successfully");
 
     loop {
         x86_64::instructions::hlt();

@@ -72,7 +72,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFr
 }
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    crate::drivers::keyboard::PC_KEYBOARD.read();
+    crate::drivers::keyboard::PC_KEYBOARD.lock().read();
 
     eoi(InterruptsVector::Keyboard.into());
 }
