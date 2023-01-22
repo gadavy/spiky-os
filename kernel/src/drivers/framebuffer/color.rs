@@ -2,6 +2,9 @@ use bootloader_api::info::PixelFormat;
 
 pub const BLACK: Color = Color::new(0x0000_0000);
 pub const WHITE: Color = Color::new(0x00ff_ffff);
+pub const RED: Color = Color::new(0x00ff_4757);
+pub const ORANGE: Color = Color::new(0x00ff_8200);
+pub const GREEN: Color = Color::new(0x0046_c93a);
 
 #[derive(Copy, Clone)]
 pub struct Color {

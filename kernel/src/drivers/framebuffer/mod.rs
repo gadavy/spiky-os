@@ -7,19 +7,46 @@ pub use geometry::*;
 mod color;
 mod geometry;
 
-pub static FRAMEBUFFER: Mutex<FramebufferDriver> = Mutex::new(FramebufferDriver::empty());
+pub static FRAMEBUFFER: Mutex<Framebuffer> = Mutex::new(Framebuffer::empty());
 
-pub struct FramebufferDriver {
-    inner: Option<InnerFrameBuffer>,
+pub struct Framebuffer {
+    bpp: usize,
+    stride: usize,
+    format: PixelFormat,
+    rect: Rect,
+
+    buf: Option<&'static mut [u8]>,
 }
 
-impl FramebufferDriver {
+impl Framebuffer {
     const fn empty() -> Self {
-        Self { inner: None }
+        Self {
+            bpp: 0,
+            stride: 0,
+            format: PixelFormat::Rgb,
+            rect: Rect::new(0, 0, 1, 1),
+            buf: None,
+        }
     }
 
     pub fn init(&mut self, info: FrameBufferInfo, buf: &'static mut [u8]) {
-        self.inner.replace(InnerFrameBuffer::new(info, buf));
+        self.rect = Rect::new(0, 0, info.width, info.height);
+        self.bpp = info.bytes_per_pixel;
+        self.format = info.pixel_format;
+        self.stride = info.stride;
+
+        self.buf.replace(buf);
+        self.fill(BLACK);
+    }
+
+    #[inline]
+    pub fn width(&self) -> usize {
+        self.rect.width()
+    }
+
+    #[inline]
+    pub fn height(&self) -> usize {
+        self.rect.height()
     }
 
     pub fn fill_pixel<P, C>(&mut self, point: P, color: C)
@@ -27,78 +54,56 @@ impl FramebufferDriver {
         P: Into<Point>,
         C: Into<Color>,
     {
-        let Some(inner) = self.inner.as_mut() else { return };
+        let point = point.into();
 
-        inner.fill_pixel(point.into(), color.into());
-    }
-
-    #[allow(dead_code)] // will be used later.
-    pub fn fill_rect<C>(&mut self, rect: Rect, color: C)
-    where
-        C: Into<Color>,
-    {
-        let Some(inner) = self.inner.as_mut() else { return };
-
-        inner.fill_region(rect, color.into());
-    }
-
-    pub fn fill<C>(&mut self, color: C)
-    where
-        C: Into<Color>,
-    {
-        let Some(inner) = self.inner.as_mut() else { return };
-
-        inner.fill_region(inner.rect, color.into());
-    }
-}
-
-pub struct InnerFrameBuffer {
-    bpp: usize,
-    stride: usize,
-    format: PixelFormat,
-    rect: Rect,
-
-    buf: &'static mut [u8],
-}
-
-impl InnerFrameBuffer {
-    fn new(info: FrameBufferInfo, buf: &'static mut [u8]) -> Self {
-        let rect = Rect::new(0, 0, info.width, info.height);
-
-        Self {
-            bpp: info.bytes_per_pixel,
-            stride: info.stride,
-            format: info.pixel_format,
-            buf,
-            rect,
-        }
-    }
-
-    fn fill_pixel(&mut self, point: Point, color: Color) {
-        if !self.rect.contains(point) {
+        if self.buf.is_none() || !self.rect.contains(point) {
             return;
         }
 
-        let px_start = (point.y() * self.stride + point.x()) * self.bpp;
-        let px_end = px_start + self.bpp;
+        let color = color.into();
 
-        self.buf[px_start..px_end].copy_from_slice(&color.to_bytes(self.format)[..self.bpp]);
+        let buffer = {
+            let offset = offset(self.stride, self.bpp, point);
+            self.buf.as_mut().unwrap()[offset..offset + self.bpp].as_mut()
+        };
+
+        buffer.copy_from_slice(&color.to_bytes(self.format)[..self.bpp]);
     }
 
-    fn fill_region(&mut self, rect: Rect, color: Color) {
+    pub fn fill_region<C>(&mut self, rect: Rect, color: C)
+    where
+        C: Into<Color>,
+    {
+        if self.buf.is_none() {
+            return;
+        }
+
         let Some(intersection) = self.rect.intersection(rect) else { return };
-        let color = &color.to_bytes(self.format)[..self.bpp];
-        let mut offset = (intersection.min().y() * self.stride + intersection.min().x()) * self.bpp;
+        let color = &color.into().to_bytes(self.format)[..self.bpp];
+
+        let mut offset = offset(self.stride, self.bpp, intersection.min());
+        let buffer = self.buf.as_mut().unwrap();
 
         for _ in 0..intersection.height() {
             for x in 0..intersection.width() {
                 let px_start = offset + x * self.bpp;
                 let px_end = px_start + self.bpp;
 
-                self.buf[px_start..px_end].copy_from_slice(color);
+                buffer[px_start..px_end].copy_from_slice(color);
             }
 
             offset += self.stride * self.bpp;
         }
     }
+
+    pub fn fill<C>(&mut self, color: C)
+    where
+        C: Into<Color>,
+    {
+        self.fill_region(self.rect, color);
+    }
+}
+
+fn offset(stride: usize, bpp: usize, point: Point) -> usize {
+    (point.y() * stride + point.x()) * bpp
 }
