@@ -1,0 +1,36 @@
+on:
+  push:
+    branches: [master]
+  pull_request:
+name: test
+jobs:
+  required:
+    runs-on: ubuntu-latest
+    name: ubuntu / ${{ matrix.toolchain }}
+    strategy:
+      matrix:
+        toolchain: [nightly]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install ${{ matrix.toolchain }}
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          default: true
+          components: rust-src
+      - name: Install x86_64-unknown-none target
+        run: |
+          rustup target add x86_64-unknown-none
+      - name: cargo generate-lockfile
+        if: hashFiles('Cargo.lock') == ''
+        uses: actions-rs/cargo@v1
+        with:
+          command: generate-lockfile
+      - name: cargo test --locked
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --locked --all-features --all-targets

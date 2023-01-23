@@ -1,5 +1,3 @@
-#![feature(abi_x86_interrupt)]
-#![feature(const_mut_refs)]
 #![no_std]
 #![no_main]
 
@@ -7,14 +5,13 @@ extern crate alloc;
 
 use bootloader_api::config::Mapping;
 use bootloader_api::BootloaderConfig;
-use core::panic::PanicInfo;
+use kernel::drivers;
+use kernel::gdt;
+use kernel::interrupts;
+use kernel::logger;
+use kernel::memory;
 
-mod drivers;
-mod gdt;
-mod interrupts;
-mod logger;
-mod memory;
-
+#[cfg(not(test))]
 bootloader_api::entry_point!(kernel_entry, config = &BOOTLOADER_CONFIG);
 
 pub static BOOTLOADER_CONFIG: BootloaderConfig = {
@@ -55,11 +52,4 @@ fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     loop {
         x86_64::instructions::hlt();
     }
-}
-
-#[cfg_attr(not(test), panic_handler)]
-fn panic(info: &PanicInfo) -> ! {
-    log::error!("{info}");
-
-    loop {}
 }
