@@ -5,10 +5,7 @@ pub mod keyboard;
 pub mod uart;
 
 pub fn init_framebuffer(info: FrameBufferInfo, buf: &'static mut [u8]) {
-    let mut fb = framebuffer::FRAMEBUFFER.lock();
-    fb.init(info, buf);
-    fb.fill(framebuffer::BLACK);
-    drop(fb);
+    framebuffer::FRAMEBUFFER.lock().init(info, buf);
 
     log::debug!("Framebuffer initialized");
 }

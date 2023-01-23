@@ -3,17 +3,17 @@ use pc_keyboard::{DecodedKey, HandleControl, Keyboard, ScancodeSet1};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
-pub static PC_KEYBOARD: Mutex<KeyboardDriver> = Mutex::new(KeyboardDriver::empty(0x60));
+pub static PC_KEYBOARD: Mutex<PcKeyboard> = Mutex::new(PcKeyboard::empty(0x60));
 
 type OnKeyHandler = fn(char) -> ();
 
-pub struct KeyboardDriver {
+pub struct PcKeyboard {
     decoder: Keyboard<Us104Key, ScancodeSet1>,
     port: Port<u8>,
     handler: Option<OnKeyHandler>,
 }
 
-impl KeyboardDriver {
+impl PcKeyboard {
     const fn empty(port: u16) -> Self {
         Self {
             decoder: Keyboard::new(HandleControl::MapLettersToUnicode),

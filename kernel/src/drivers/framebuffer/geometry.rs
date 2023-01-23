@@ -7,7 +7,7 @@ pub struct Point {
 
 impl Point {
     /// Creates a new `Point` at (x, y)
-    pub fn new(x: usize, y: usize) -> Self {
+    pub const fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
 
@@ -46,7 +46,7 @@ pub struct Rect {
 impl Rect {
     /// Creates a new `Rect` from a position and size. Width and height
     /// are required to be strictly positive.
-    pub fn new(x: usize, y: usize, width: usize, height: usize) -> Self {
+    pub const fn new(x: usize, y: usize, width: usize, height: usize) -> Self {
         assert!(width > 0, "width must be strictly positive");
         assert!(height > 0, "height must be strictly positive");
 

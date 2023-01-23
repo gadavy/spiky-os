@@ -3,22 +3,20 @@ use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
 pub const COM1_BASE: u16 = 0x3F8;
 
-pub static UART: Mutex<UartDriver> = Mutex::new(UartDriver::empty());
+pub static UART: Mutex<Uart> = Mutex::new(Uart::empty());
 
-pub struct UartDriver {
-    inner: Mutex<Option<InnerController>>,
+pub struct Uart {
+    inner: Option<InnerUart>,
 }
 
-impl UartDriver {
+impl Uart {
     const fn empty() -> Self {
-        Self {
-            inner: Mutex::new(None),
-        }
+        Self { inner: None }
     }
 
-    pub fn init(&self, base: u16) -> bool {
-        if let Some(inner) = InnerController::new(base) {
-            self.inner.lock().replace(inner);
+    pub fn init(&mut self, base: u16) -> bool {
+        if let Some(inner) = InnerUart::new(base) {
+            self.inner.replace(inner);
 
             true
         } else {
@@ -26,27 +24,19 @@ impl UartDriver {
         }
     }
 
-    pub fn write(&self, buf: &[u8]) {
-        if let Some(inner) = self.inner.lock().as_mut() {
+    pub fn write(&mut self, buf: &[u8]) {
+        if let Some(inner) = self.inner.as_mut() {
             buf.iter().for_each(|b| inner.write_byte(*b));
         }
     }
 }
 
-impl core::fmt::Write for UartDriver {
-    fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        self.write(s.as_bytes());
-
-        Ok(())
-    }
-}
-
-struct InnerController {
+struct InnerUart {
     data: Port<u8>,
     line_sts: PortReadOnly<u8>,
 }
 
-impl InnerController {
+impl InnerUart {
     fn new(base: u16) -> Option<Self> {
         let mut data = Port::<u8>::new(base);
         let mut int_en = PortWriteOnly::<u8>::new(base + 1);

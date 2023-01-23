@@ -1,4 +1,5 @@
 #![feature(abi_x86_interrupt)]
+#![feature(const_mut_refs)]
 #![no_std]
 #![no_main]
 
@@ -27,7 +28,7 @@ fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     let phys_mem_offset = *info.physical_memory_offset.as_mut().expect("no mem offset");
 
     // Init logger.
-    logger::init(fb.info());
+    logger::init();
 
     // Init base drivers.
     drivers::init_framebuffer(fb.info(), fb.buffer_mut());
