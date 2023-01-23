@@ -1,5 +1,5 @@
 /// A 2d point.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Point {
     x: usize,
     y: usize,
@@ -36,23 +36,19 @@ impl From<[usize; 2]> for Point {
     }
 }
 
-/// A rectangular region of non-zero width and height.
-#[derive(Debug, Copy, Clone)]
+/// A rectangular region.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Rect {
     min: Point,
     max: Point,
 }
 
 impl Rect {
-    /// Creates a new `Rect` from a position and size. Width and height
-    /// are required to be strictly positive.
+    /// Creates a new `Rect` from a position and size.
     pub const fn new(x: usize, y: usize, width: usize, height: usize) -> Self {
-        assert!(width > 0, "width must be strictly positive");
-        assert!(height > 0, "height must be strictly positive");
-
         Self {
             min: Point::new(x, y),
-            max: Point::new(x + width - 1, y + height - 1),
+            max: Point::new(x + width, y + height),
         }
     }
 
@@ -104,5 +100,36 @@ impl Rect {
             min: Point::new(left, top),
             max: Point::new(right, bottom),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::drivers::framebuffer::{Point, Rect};
+
+    #[test]
+    fn rect_contains() {
+        let r = Rect::new(5, 5, 5, 5);
+        assert!(r.contains(Point::new(5, 5)));
+        assert!(r.contains(Point::new(10, 10)));
+        assert!(!r.contains(Point::new(10, 11)));
+        assert!(!r.contains(Point::new(11, 10)));
+    }
+
+    #[test]
+    fn rect_intersection() {
+        let r = Rect::new(5, 5, 5, 5);
+
+        assert_eq!(
+            r.intersection(Rect::new(5, 5, 2, 2)),
+            Some(Rect::new(5, 5, 2, 2))
+        );
+
+        assert_eq!(
+            r.intersection(Rect::new(2, 2, 5, 5)),
+            Some(Rect::new(5, 5, 2, 2))
+        );
+
+        assert_eq!(r.intersection(Rect::new(11, 11, 5, 5)), None);
     }
 }
