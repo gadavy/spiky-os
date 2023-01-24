@@ -49,6 +49,22 @@ fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
 
     log::debug!("Kernel initialized successfully");
 
+    let x = alloc::boxed::Box::new(32);
+    log::debug!("box ptr={x:p}");
+
+    for _ in 0..1 {
+        let mut y = alloc::vec::Vec::new();
+        log::debug!("vec ptr={:p}", y.as_slice());
+
+        for i in 0..500 {
+            y.push(i);
+
+            if i % 100 == 0 {
+                log::debug!("vec ptr={:p}", y.as_slice());
+            }
+        }
+    }
+
     loop {
         x86_64::instructions::hlt();
     }
