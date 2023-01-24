@@ -31,34 +31,42 @@ pub fn init() {
 
 pub struct Gdt {
     gdt: GlobalDescriptorTable,
-    code_selector: SegmentSelector,
-    data_selector: SegmentSelector,
-    tss_selector: SegmentSelector,
+
+    kernel_code: SegmentSelector,
+    kernel_data: SegmentSelector,
+    kernel_tss: SegmentSelector,
+
+    user_data: SegmentSelector,
+    user_code: SegmentSelector,
 }
 
 impl Gdt {
     pub const fn new() -> Self {
         Self {
             gdt: GlobalDescriptorTable::new(),
-            code_selector: SegmentSelector::NULL,
-            data_selector: SegmentSelector::NULL,
-            tss_selector: SegmentSelector::NULL,
+            kernel_code: SegmentSelector::NULL,
+            kernel_data: SegmentSelector::NULL,
+            kernel_tss: SegmentSelector::NULL,
+            user_data: SegmentSelector::NULL,
+            user_code: SegmentSelector::NULL,
         }
     }
 
     pub fn init(&mut self, tss: &'static TaskStateSegment) {
-        self.code_selector = self.gdt.add_entry(Descriptor::kernel_code_segment());
-        self.data_selector = self.gdt.add_entry(Descriptor::kernel_data_segment());
-        self.tss_selector = self.gdt.add_entry(Descriptor::tss_segment(tss));
+        self.kernel_code = self.gdt.add_entry(Descriptor::kernel_code_segment());
+        self.kernel_data = self.gdt.add_entry(Descriptor::kernel_data_segment());
+        self.kernel_tss = self.gdt.add_entry(Descriptor::tss_segment(tss));
+        self.user_data = self.gdt.add_entry(Descriptor::user_data_segment());
+        self.user_code = self.gdt.add_entry(Descriptor::user_code_segment());
 
         unsafe {
             self.gdt.load_unsafe();
 
-            CS::set_reg(self.code_selector);
-            SS::set_reg(self.data_selector);
-            DS::set_reg(self.data_selector);
-            ES::set_reg(self.data_selector);
-            load_tss(self.tss_selector);
+            CS::set_reg(self.kernel_code);
+            DS::set_reg(self.kernel_data);
+            ES::set_reg(self.kernel_data);
+            SS::set_reg(self.kernel_data);
+            load_tss(self.kernel_tss);
         }
     }
 }
