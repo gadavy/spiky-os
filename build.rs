@@ -7,13 +7,13 @@ fn main() {
     // https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies
     let kernel = PathBuf::from(std::env::var_os("CARGO_BIN_FILE_KERNEL_kernel").unwrap());
 
-    // create a BIOS disk image
-    let bios_path = out_dir.join("spiky-os-bios.img");
-    bootloader::BiosBoot::new(&kernel)
-        .create_disk_image(&bios_path)
+    // create a UEFI disk image
+    let uefi_path = out_dir.join("uefi.img");
+    bootloader::UefiBoot::new(&kernel)
+        .create_disk_image(&uefi_path)
         .unwrap();
 
     // pass the disk image paths as env variables to the `main.rs`
-    println!("cargo:rustc-env=BIOS_PATH={}", bios_path.display());
-    println!("cargo:warning=image path: {}", bios_path.display());
+    println!("cargo:rustc-env=UEFI_PATH={}", uefi_path.display());
+    println!("cargo:warning=image path: {}", uefi_path.display());
 }
