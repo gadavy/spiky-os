@@ -5,7 +5,7 @@ extern crate alloc;
 
 use bootloader_api::config::Mapping;
 use bootloader_api::BootloaderConfig;
-use kernel::drivers;
+use kernel::devices;
 use kernel::gdt;
 use kernel::interrupts;
 use kernel::logger;
@@ -28,8 +28,8 @@ fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     logger::init();
 
     // Init base drivers.
-    drivers::init_framebuffer(fb.info(), fb.buffer_mut());
-    drivers::init_uart();
+    devices::init_framebuffer(fb.info(), fb.buffer_mut());
+    devices::init_uart();
 
     // Init global descriptor table.
     gdt::init();
@@ -38,7 +38,7 @@ fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     interrupts::init();
 
     // Init other drivers.
-    drivers::init_keyboard();
+    devices::init_keyboard();
 
     // Init memory.
     memory::init(phys_mem_offset, &info.memory_regions);

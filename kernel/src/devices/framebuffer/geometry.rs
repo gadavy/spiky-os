@@ -105,7 +105,7 @@ impl Rect {
 
 #[cfg(test)]
 mod tests {
-    use crate::drivers::framebuffer::{Point, Rect};
+    use crate::devices::framebuffer::{Point, Rect};
 
     #[test]
     fn rect_contains() {

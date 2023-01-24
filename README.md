@@ -32,3 +32,5 @@ os from blog, but use bootloader 0.10
 https://github.com/HalogenPowered/os/tree/master/src
 
 https://github.com/theseus-os/Theseus/blob/theseus_main/kernel/pci/src/lib.rs
+
+https://nfil.dev/kernel/rust/coding/rust-kernel-to-userspace-and-back/

@@ -383,6 +383,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
 
 [[package]]
+name = "ovmf-prebuilt"
+version = "0.1.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa50141d081512ab30fd9e7e7692476866df5098b028536ad6680212e717fa8d"
+
+[[package]]
 name = "pc-keyboard"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -492,6 +498,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader",
  "kernel",
+ "ovmf-prebuilt",
 ]
 
 [[package]]

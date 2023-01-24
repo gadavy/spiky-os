@@ -4,7 +4,7 @@
 
 extern crate alloc;
 
-pub mod drivers;
+pub mod devices;
 pub mod gdt;
 pub mod interrupts;
 pub mod logger;

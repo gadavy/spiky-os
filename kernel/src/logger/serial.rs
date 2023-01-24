@@ -1,7 +1,7 @@
 use core::fmt::Write;
 use log::Level;
 
-use crate::drivers::uart;
+use crate::devices::uart;
 
 pub struct Logger;
 

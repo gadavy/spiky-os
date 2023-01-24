@@ -2,14 +2,14 @@ use core::fmt::Write;
 
 use log::Level;
 
-use crate::drivers::framebuffer::{Color, Point, BLACK, GREEN, ORANGE, RED, WHITE};
+use crate::devices::framebuffer::{Color, Point, BLACK, GREEN, ORANGE, RED, WHITE};
 
 const CHARACTER_WIDTH: usize = 9;
 const CHARACTER_HEIGHT: usize = 16;
 
 /// `RobotoMono` bitmap.
 static FONT: [[[u8; CHARACTER_WIDTH]; CHARACTER_HEIGHT]; 256] =
-    include!("../../assets/roboto-mono-bitmap.txt");
+    include!("../../../assets/roboto-mono-bitmap.txt");
 
 pub struct Logger {
     current_x: usize,
@@ -27,7 +27,7 @@ impl Logger {
     }
 
     fn draw_text(&mut self, s: &str) {
-        let mut fb = crate::drivers::framebuffer::FRAMEBUFFER.lock();
+        let mut fb = crate::devices::framebuffer::FRAMEBUFFER.lock();
 
         for character in s.chars() {
             if character == '\n' {
