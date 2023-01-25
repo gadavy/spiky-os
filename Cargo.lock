@@ -3,6 +3,17 @@
 version = 3
 
 [[package]]
+name = "acpi"
+version = "4.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "654f48ab3178632ea535be1765073b990895cb62f70a7e5671975d7150c26d15"
+dependencies = [
+ "bit_field",
+ "log",
+ "rsdp",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -31,6 +42,12 @@ checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "bit"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b645c5c09a7d4035949cfce1a915785aaad6f17800c35fda8a8c311c491f284"
 
 [[package]]
 name = "bit_field"
@@ -295,12 +312,14 @@ dependencies = [
 name = "kernel"
 version = "0.1.0"
 dependencies = [
+ "acpi",
  "bootloader_api",
  "log",
  "pc-keyboard",
  "pic8259",
  "slab_allocator_rs",
  "spin",
+ "x2apic",
  "x86_64",
 ]
 
@@ -389,6 +408,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa50141d081512ab30fd9e7e7692476866df5098b028536ad6680212e717fa8d"
 
 [[package]]
+name = "paste"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d01a5bd0424d00070b0098dd17ebca6f961a959dead1dbcbbbc1d1cd8d3deeba"
+
+[[package]]
 name = "pc-keyboard"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -405,9 +430,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.49"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57a8eca9f9c4ffde41714334dee777596264c7825420f521abc92b5b5deb63a5"
+checksum = "6ef7d57beacfaf2d8aee5937dab7b7f28de3cb8b1828479bb5de2a7106f2bae2"
 dependencies = [
  "unicode-ident",
 ]
@@ -428,6 +453,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
+name = "raw-cpuid"
+version = "10.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6823ea29436221176fe662da99998ad3b4db2c7f31e7b6f5fe43adccd6320bb"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -443,6 +477,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
 dependencies = [
  "winapi",
+]
+
+[[package]]
+name = "rsdp"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66d3add2fc55ef37511bcf81a08ee7a09eff07b23aae38b06a29024a38c604b1"
+dependencies = [
+ "log",
 ]
 
 [[package]]
@@ -722,6 +765,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
 dependencies = [
  "tap",
+]
+
+[[package]]
+name = "x2apic"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32b6a3e030cfc71d614954e1de6dcb09e40bf1437f620c27b4526f978bee912e"
+dependencies = [
+ "bit",
+ "bitflags",
+ "paste",
+ "raw-cpuid",
+ "x86_64",
 ]
 
 [[package]]
