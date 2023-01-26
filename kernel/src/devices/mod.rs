@@ -1,7 +1,12 @@
 use bootloader_api::info::FrameBufferInfo;
 
+pub mod acpi;
 pub mod framebuffer;
+pub mod ioapic;
 pub mod keyboard;
+pub mod lapic;
+pub mod pic;
+pub mod rtc;
 pub mod uart;
 
 pub fn init_framebuffer(info: FrameBufferInfo, buf: &'static mut [u8]) {
@@ -22,6 +27,18 @@ pub fn init_uart() {
     } else {
         log::error!("UART with base `0x{:02x}` not supported", uart::COM1_BASE);
     }
+}
+
+pub fn init_rtc() {
+    if let Some(fadt) = acpi::ACPI.read().fadt() {
+        rtc::RTC.lock().init_century_reg(fadt.century_reg);
+    } else {
+        log::warn!("FADT is empty")
+    }
+}
+
+pub fn init_acpi(phys_mem_offset: u64, rsdp_addr: u64) {
+    acpi::ACPI.write().init(phys_mem_offset, rsdp_addr);
 }
 
 fn default_keyboard_handler(c: char) {

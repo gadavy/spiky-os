@@ -1,5 +1,6 @@
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
+use x86_64::PrivilegeLevel;
 
 use crate::gdt::DOUBLE_FAULT_IST_INDEX;
 
@@ -7,7 +8,11 @@ pub fn init(idt: &mut InterruptDescriptorTable) {
     idt.divide_error.set_handler_fn(divide_error_handler);
     idt.debug.set_handler_fn(debug_handler);
     idt.non_maskable_interrupt.set_handler_fn(nmi_handler);
-    idt.breakpoint.set_handler_fn(breakpoint_handler);
+    idt.breakpoint
+        .set_handler_fn(breakpoint_handler)
+        .set_present(true)
+        .set_privilege_level(PrivilegeLevel::Ring3);
+
     idt.overflow.set_handler_fn(overflow_handler);
     idt.bound_range_exceeded
         .set_handler_fn(bound_range_exceeded_handler);

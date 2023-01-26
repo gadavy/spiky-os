@@ -6,7 +6,7 @@ extern crate alloc;
 
 pub mod devices;
 pub mod gdt;
-pub mod interrupts;
+pub mod idt;
 pub mod logger;
 
 #[cfg(not(test))] // TODO: fix later

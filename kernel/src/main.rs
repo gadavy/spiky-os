@@ -7,7 +7,7 @@ use bootloader_api::config::Mapping;
 use bootloader_api::BootloaderConfig;
 use kernel::devices;
 use kernel::gdt;
-use kernel::interrupts;
+use kernel::idt;
 use kernel::logger;
 use kernel::memory;
 
@@ -26,44 +26,33 @@ fn kernel_entry(info: &'static mut bootloader_api::BootInfo) -> ! {
 
     // Init logger.
     logger::init();
-
-    // Init base drivers.
     devices::init_framebuffer(fb.info(), fb.buffer_mut());
     devices::init_uart();
 
-    // Init global descriptor table.
+    // Init GDT and IDT before memory mapping.
     gdt::init();
-
-    // Init interrupts.
-    interrupts::init();
-
-    // Init other drivers.
-    devices::init_keyboard();
+    idt::init();
 
     // Init memory.
     memory::init(phys_mem_offset, &info.memory_regions);
 
+    // Init other drivers.
+    devices::init_keyboard();
+
+    if let Some(rsdp_addr) = info.rsdp_addr.into_option() {
+        devices::init_acpi(phys_mem_offset, rsdp_addr);
+        devices::init_rtc();
+    }
+
+    devices::pic::init();
+    devices::lapic::init(phys_mem_offset);
+    devices::ioapic::init();
+
     // Enable interrupts.
-    interrupts::enable();
+    idt::enable();
     log::debug!("Interrupts enabled");
 
     log::debug!("Kernel initialized successfully");
-
-    let x = alloc::boxed::Box::new(32);
-    log::debug!("box ptr={x:p}");
-
-    for _ in 0..1 {
-        let mut y = alloc::vec::Vec::new();
-        log::debug!("vec ptr={:p}", y.as_slice());
-
-        for i in 0..500 {
-            y.push(i);
-
-            if i % 100 == 0 {
-                log::debug!("vec ptr={:p}", y.as_slice());
-            }
-        }
-    }
 
     loop {
         x86_64::instructions::hlt();

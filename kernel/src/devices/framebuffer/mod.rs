@@ -102,6 +102,19 @@ impl Framebuffer {
     {
         self.fill_region(self.rect, color);
     }
+
+    pub fn scroll(&mut self, lines: usize) {
+        let offset = self.height().min(lines) * self.stride * self.bpp;
+        let size = (self.stride * self.height() * self.bpp) - offset;
+
+        let Some( buffer) = self.buf.as_mut() else { return };
+
+        unsafe {
+            let ptr = buffer.as_mut_ptr();
+            core::ptr::copy(ptr.add(offset), ptr, size);
+            core::ptr::write_bytes(ptr.add(size), 0, offset);
+        }
+    }
 }
 
 fn offset(stride: usize, bpp: usize, point: Point) -> usize {

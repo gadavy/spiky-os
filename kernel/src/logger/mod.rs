@@ -2,7 +2,7 @@ use core::fmt::Write;
 use log::{Level, LevelFilter, Metadata, Record};
 use spin::Mutex;
 
-use crate::interrupts::without_interrupts;
+use crate::idt::without_interrupts;
 
 mod display;
 mod serial;
@@ -10,7 +10,7 @@ mod serial;
 static KERNEL_LOGGER: LockedKernelLogger = LockedKernelLogger::new();
 
 pub fn init() {
-    log::set_logger(&KERNEL_LOGGER).unwrap();
+    log::set_logger(&KERNEL_LOGGER).expect("set logger failed");
     log::set_max_level(LevelFilter::Trace);
 }
 
