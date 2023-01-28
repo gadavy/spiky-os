@@ -11,7 +11,7 @@ diskutil list
 
 diskutil unmountDisk /dev/disk2
 
-sudo dd if=spiky-os.img of=/dev/disk2 bs=1m
+sudo dd if=/Users/gadavy/dev/my/spiky-os/target/release/build/spiky-os-962c8ea19b775413/out/uefi.img of=/dev/disk2 bs=1m
 
 diskutil eject /dev/disk2
 ```

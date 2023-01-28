@@ -3,7 +3,9 @@ fn main() {
     let uefi_path = env!("UEFI_PATH");
 
     let mut cmd = std::process::Command::new("qemu-system-x86_64");
-    cmd.arg("-serial")
+    cmd.arg("-smp")
+        .arg("cpus=4")
+        .arg("-serial")
         .arg("stdio")
         .arg("-bios")
         .arg(ovmf_prebuilt::ovmf_pure_efi())

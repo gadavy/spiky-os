@@ -1,14 +1,12 @@
 use x86_64::structures::idt::InterruptStackFrame;
 
-use crate::devices;
+use super::eoi;
 
 pub extern "x86-interrupt" fn pit_stack(_stack: InterruptStackFrame) {
     eoi(0);
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack: InterruptStackFrame) {
-    devices::keyboard::PC_KEYBOARD.lock().read();
-
     eoi(1);
 }
 
@@ -76,24 +74,6 @@ pub extern "x86-interrupt" fn lapic_error(_stack: InterruptStackFrame) {
     eoi(17);
 }
 
-pub extern "x86-interrupt" fn lapic_spurious(_stack: InterruptStackFrame) {
-    eoi(18);
-}
-
 pub extern "x86-interrupt" fn unimplemented(_stack: InterruptStackFrame) {
-    if let Some(lapic) = devices::lapic::LOCAL_APIC.lock().as_mut() {
-        unsafe { lapic.end_of_interrupt() };
-    }
-}
-
-fn eoi(irq: u8) {
-    if let Some(lapic) = devices::lapic::LOCAL_APIC.lock().as_mut() {
-        unsafe { lapic.end_of_interrupt() };
-    } else {
-        unsafe {
-            devices::pic::PICS
-                .lock()
-                .notify_end_of_interrupt(irq + 0x20)
-        };
-    }
+    // TODO: add eoi
 }

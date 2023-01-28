@@ -5,7 +5,8 @@ use acpi::madt::Madt;
 use acpi::sdt::Signature;
 use acpi::{AcpiTables, HpetInfo, PhysicalMapping};
 use spin::RwLock;
-use x86_64::VirtAddr;
+use x86_64::structures::paging::PageTableFlags;
+use x86_64::{PhysAddr, VirtAddr};
 
 pub static ACPI: RwLock<AcpiInfo> = RwLock::new(AcpiInfo::empty());
 

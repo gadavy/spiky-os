@@ -9,15 +9,9 @@ name = "kernel"
 test = false
 
 [dependencies]
-bootloader_api = "0.11.0"
-x86_64 = "0.14.10"
+arch = { path = "../arch" }
 spin = "0.9.4"
-pic8259 = "0.10.2"
-pc-keyboard = "0.6.1"
 log = "0.4.17"
-slab_allocator_rs = "1.0.2"
-acpi = "4.1.1"
-x2apic = "0.4.1"
 
 [profile.dev]
 panic = "abort"
