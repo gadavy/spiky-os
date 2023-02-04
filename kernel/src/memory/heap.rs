@@ -1,6 +1,6 @@
 use slab_allocator_rs::LockedHeap;
 
-#[global_allocator]
+#[cfg_attr(not(test), global_allocator)]
 static HEAP: LockedHeap = LockedHeap::empty();
 
 /// # Safety

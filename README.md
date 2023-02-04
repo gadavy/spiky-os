@@ -11,7 +11,7 @@ diskutil list
 
 diskutil unmountDisk /dev/disk2
 
-sudo dd if=/Users/gadavy/dev/my/spiky-os/target/release/build/spiky-os-962c8ea19b775413/out/uefi.img of=/dev/disk2 bs=1m
+sudo dd if=uefi.img of=/dev/disk2 bs=1m
 
 diskutil eject /dev/disk2
 ```
@@ -34,3 +34,8 @@ https://github.com/HalogenPowered/os/tree/master/src
 https://github.com/theseus-os/Theseus/blob/theseus_main/kernel/pci/src/lib.rs
 
 https://nfil.dev/kernel/rust/coding/rust-kernel-to-userspace-and-back/
+
+
+
+https://github.com/vinaychandra/MoonDustKernel/blob/1918d302c932a9b610944930e38790156d3f7c53/src/arch/x86_64/memory/cpu_local.rs
+https://github.com/vinaychandra/MoonDustKernel/blob/1918d302c932a9b610944930e38790156d3f7c53/src/common/memory/cpu_local.rs

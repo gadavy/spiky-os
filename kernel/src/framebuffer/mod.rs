@@ -5,7 +5,7 @@ const CHARACTER_HEIGHT: usize = 16;
 
 /// `RobotoMono` bitmap.
 static FONT: [[[u8; CHARACTER_WIDTH]; CHARACTER_HEIGHT]; 256] =
-    include!("../../fonts/roboto-mono-bitmap.txt");
+    include!("../../../fonts/roboto-mono-bitmap.txt");
 
 mod color;
 

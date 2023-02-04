@@ -3,7 +3,7 @@ use x86_64::registers::model_specific::FsBase;
 use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
-use super::consts::*;
+use super::consts::{KERNEL_PERCPU_OFFSET, KERNEL_PERCPU_SIZE};
 
 const TLS_ALIGN: u64 = 16;
 

@@ -1,34 +1,31 @@
-use bootloader_api::info::{MemoryRegionKind, MemoryRegions};
+use bootloader_api::info::MemoryRegions;
 use spin::Mutex;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::mapper::{MapToError, MapperFlush};
 use x86_64::structures::paging::{
-    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
+    FrameAllocator, FrameDeallocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags,
+    PhysFrame, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
-use bump::BumpAllocator;
+use crate::consts::{KERNEL_HEAP_OFFSET, KERNEL_HEAP_SIZE};
+use frame_allocator::BuddyFrameAllocator;
 
-use super::consts::*;
-
-// mod buddy;
-mod bump;
+mod frame_allocator;
+mod heap;
 
 pub static MEMORY_MANAGER: Mutex<MemoryManager> = Mutex::new(MemoryManager::empty());
 
 pub fn init(phys_mem_offset: u64, regions: &'static MemoryRegions) {
-    let mem_size: u64 = regions
-        .iter()
-        .filter(|r| r.kind == MemoryRegionKind::Usable)
-        .map(|r| r.end - r.start)
-        .sum();
-
-    log::debug!("Available memory {} MB", mem_size >> 20);
-
     let mapper = unsafe { new_mapper(phys_mem_offset) };
-    let bump_allocator = BumpAllocator::init(regions);
+    let allocator = BuddyFrameAllocator::new(phys_mem_offset, regions);
 
-    MEMORY_MANAGER.lock().init(mapper, bump_allocator);
+    log::info!(
+        "Available memory {} MB",
+        allocator.free_pages() * 4096 >> 20
+    );
+
+    MEMORY_MANAGER.lock().init(mapper, allocator);
 }
 
 pub fn init_heap() {
@@ -49,12 +46,12 @@ pub fn init_heap() {
     }
 
     // Safety: we map memory for stack addresses.
-    unsafe { crate::heap::init(heap_start.as_u64() as usize, KERNEL_HEAP_SIZE as usize) };
+    unsafe { heap::init(heap_start.as_u64() as usize, KERNEL_HEAP_SIZE as usize) };
 }
 
 pub struct MemoryManager {
     mapper: Option<OffsetPageTable<'static>>,
-    allocator: Option<BumpAllocator>,
+    allocator: Option<BuddyFrameAllocator>,
 }
 
 impl MemoryManager {
@@ -65,9 +62,9 @@ impl MemoryManager {
         }
     }
 
-    fn init(&mut self, mapper: OffsetPageTable<'static>, bump_allocator: BumpAllocator) {
+    fn init(&mut self, mapper: OffsetPageTable<'static>, allocator: BuddyFrameAllocator) {
         self.mapper.replace(mapper);
-        self.allocator.replace(bump_allocator);
+        self.allocator.replace(allocator);
     }
 
     pub fn map(
@@ -115,6 +112,12 @@ impl MemoryManager {
         }
 
         Ok(first)
+    }
+
+    pub fn deallocate(&mut self, frame: PhysFrame<Size4KiB>) {
+        let allocator = self.allocator.as_mut().unwrap();
+
+        unsafe { allocator.deallocate_frame(frame) }
     }
 
     pub fn page_size(&self) -> usize {

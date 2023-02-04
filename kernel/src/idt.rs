@@ -42,7 +42,7 @@ static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 
 /// Initializes a BSP IDT.
 pub fn init_bsp() {
-    log::trace!("init BSP IDT");
+    log::trace!("Init BSP IDT");
 
     unsafe { init_generic(true, &mut IDT) };
 }
