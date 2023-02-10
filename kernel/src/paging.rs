@@ -3,14 +3,13 @@ use x86_64::registers::model_specific::FsBase;
 use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
-use super::consts::{KERNEL_PERCPU_OFFSET, KERNEL_PERCPU_SIZE};
+use crate::consts::*;
+use crate::memory::PAGE_MAPPER;
 
 const TLS_ALIGN: u64 = 16;
 
 pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
     log::trace!("Init paging");
-
-    let mut manager = super::memory::MEMORY_MANAGER.lock();
 
     // In some cases, `mem_size` and `file_size` might not be aligned, so fix this.
     tls.mem_size += tls.mem_size % TLS_ALIGN;
@@ -29,10 +28,15 @@ pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
         | PageTableFlags::GLOBAL;
 
     for page in page_range {
-        manager
-            .map(page, flags)
-            .expect("failed to allocate page for TLS")
-            .flush();
+        unsafe {
+            PAGE_MAPPER
+                .lock()
+                .as_mut()
+                .expect("failed to get KernelMapper for mapping TLS")
+                .map(page, flags)
+                .expect("failed to allocate page for TLS")
+                .flush();
+        }
     }
 
     unsafe {

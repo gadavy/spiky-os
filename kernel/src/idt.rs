@@ -48,32 +48,12 @@ pub fn init_bsp() {
 }
 
 unsafe fn init_generic(is_bsp: bool, idt: &mut InterruptDescriptorTable) {
-    let backup_ist = {
-        let mut manager = super::memory::MEMORY_MANAGER.lock();
-
-        // Allocate 64 KiB of stack space for the backup stack.
-        let page_count = KERNEL_BACKUP_STACK_SIZE / manager.page_size();
-
-        let frame = manager
-            .allocate_frames(page_count)
-            .expect("failed to allocate pages for backup interrupt stack");
-
-        let base_address = manager.phys_to_virt(frame.start_address());
-        let address = base_address + KERNEL_BACKUP_STACK_SIZE;
-
-        let index = 0;
-
-        super::gdt::TSS.interrupt_stack_table[index] = address;
-
-        index as u16
-    };
-
     // Set up exceptions
     idt.divide_error.set_handler_fn(exception::divide_error);
     idt.debug.set_handler_fn(exception::debug);
     idt.non_maskable_interrupt
         .set_handler_fn(exception::nmi)
-        .set_stack_index(backup_ist);
+        .set_stack_index(KERNEL_BACKUP_STACK_INDEX);
     idt.breakpoint
         .set_handler_fn(exception::breakpoint)
         .set_present(true)
@@ -87,7 +67,7 @@ unsafe fn init_generic(is_bsp: bool, idt: &mut InterruptDescriptorTable) {
         .set_handler_fn(exception::device_not_available);
     idt.double_fault
         .set_handler_fn(exception::double_fault)
-        .set_stack_index(backup_ist);
+        .set_stack_index(KERNEL_BACKUP_STACK_INDEX);
 
     idt.invalid_tss.set_handler_fn(exception::invalid_tss);
     idt.segment_not_present
@@ -103,7 +83,7 @@ unsafe fn init_generic(is_bsp: bool, idt: &mut InterruptDescriptorTable) {
         .set_handler_fn(exception::alignment_check);
     idt.machine_check
         .set_handler_fn(exception::machine_check)
-        .set_stack_index(backup_ist);
+        .set_stack_index(KERNEL_BACKUP_STACK_INDEX);
     idt.simd_floating_point
         .set_handler_fn(exception::simd_floating_point);
     idt.virtualization.set_handler_fn(exception::virtualization);

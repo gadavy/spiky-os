@@ -11,7 +11,7 @@ test = false
 [dependencies]
 spin = "0.9.4"
 log = "0.4.17"
-bootloader_api = { git = "https://github.com/rust-osdev/bootloader", package = "bootloader_api"}
+bootloader_api = { git = "https://github.com/rust-osdev/bootloader", package = "bootloader_api" }
 x86 = "0.52.0"
 x86_64 = "0.14.10"
 slab_allocator_rs = "1.0.2"

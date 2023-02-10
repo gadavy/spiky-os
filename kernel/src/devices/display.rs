@@ -1,6 +1,7 @@
-use crate::framebuffer::{Framebuffer, PixelFormat};
 use bootloader_api::info;
 use spin::Mutex;
+
+use crate::framebuffer::{Framebuffer, PixelFormat};
 
 pub static DISPLAY: Mutex<Option<Framebuffer>> = Mutex::new(None);
 

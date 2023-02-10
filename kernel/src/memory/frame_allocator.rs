@@ -1,8 +1,10 @@
-use crate::consts::{PAGE_OFFSET_MASK, PAGE_SHIFT, PAGE_SIZE};
+use core::ops::Range;
+
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
-use core::fmt::Debug;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
+
+use crate::consts::*;
 
 #[derive(Debug, Eq, PartialEq)]
 struct BuddyEntry {
@@ -40,39 +42,76 @@ impl BuddyEntry {
         self.start_phys <= addr && addr <= self.start_phys + self.size
     }
 
-    fn allocate_page(&mut self) -> Option<PhysAddr> {
+    fn allocate_range(&mut self, length: u64) -> Option<PhysAddr> {
+        if self.size - self.used < length {
+            return None;
+        }
+
+        let page_range = self.find_free_range(length)?;
+
+        for page in page_range.clone() {
+            self.set_page_usage(page, true);
+
+            let offset = page << PAGE_SHIFT;
+            let virt_addr = self.start_virt + offset;
+
+            // Zero page.
+            unsafe { core::ptr::write_bytes(virt_addr.as_mut_ptr::<u8>(), 0, PAGE_SIZE as usize) };
+        }
+
+        if self.skip == page_range.start {
+            self.skip += length;
+        }
+
+        self.used += length;
+
+        let offset = page_range.start << PAGE_SHIFT;
+        let phys_addr = self.start_phys + offset;
+
+        Some(phys_addr)
+    }
+
+    fn deallocate_range(&mut self, addr: PhysAddr, length: u64) {
+        let start_page = (addr - self.start_phys) >> PAGE_SHIFT;
+
+        for page in start_page..start_page + length {
+            assert!(
+                self.page_is_used(start_page),
+                "tried to free already free page"
+            );
+
+            self.set_page_usage(start_page, false);
+
+            if page < self.skip {
+                self.skip = page;
+            }
+
+            self.used -= 1;
+        }
+    }
+
+    fn find_free_range(&self, length: u64) -> Option<Range<u64>> {
+        let mut free_page = 0;
+        let mut free_count = 0;
+
         for page in self.skip..self.total_pages() {
             if self.page_is_used(page) {
+                free_count = 0;
                 continue;
             }
 
-            self.set_page_usage(page, true);
-            self.used += 1;
-            self.skip = page + 1;
+            if free_count == 0 {
+                free_page = page
+            }
 
-            let offset = page << PAGE_SHIFT;
-            let phys_addr = self.start_phys + offset;
-            let virt_addr = self.start_virt + offset;
+            free_count += 1;
 
-            unsafe { core::ptr::write_bytes(virt_addr.as_mut_ptr::<u8>(), 0, PAGE_SIZE as usize) };
-
-            return Some(phys_addr);
+            if free_count == length {
+                return Some(free_page..free_page + free_count);
+            }
         }
 
         None
-    }
-
-    fn deallocate_page(&mut self, addr: PhysAddr) {
-        let index = (addr - self.start_phys) >> PAGE_SHIFT;
-        assert!(self.page_is_used(index), "tried to free already free page");
-
-        self.set_page_usage(index, false);
-
-        if index < self.skip {
-            self.skip = index;
-        }
-
-        self.used -= 1;
     }
 
     fn page_is_used(&self, index: u64) -> bool {
@@ -107,7 +146,7 @@ pub struct BuddyFrameAllocator {
 }
 
 impl BuddyFrameAllocator {
-    pub(crate) fn new(phys_mem_offset: u64, regions: &[MemoryRegion]) -> Self {
+    pub fn new(phys_mem_offset: u64, regions: &[MemoryRegion]) -> Self {
         let phys_mem_offset = VirtAddr::new(phys_mem_offset);
 
         // First we need to find a MemoryRegion of the right size.
@@ -130,6 +169,7 @@ impl BuddyFrameAllocator {
             "MemoryRegion with size {PAGE_SIZE} not found",
         );
 
+        // Allocate buddy table and zero it.
         let entries = unsafe {
             core::slice::from_raw_parts_mut(
                 table_addr.as_mut_ptr::<BuddyEntry>(),
@@ -176,6 +216,7 @@ impl BuddyFrameAllocator {
             }
         }
 
+        // Allocate buddy maps.
         for entry in entries.iter_mut() {
             for page in 0..entry.total_pages() {
                 entry.set_page_usage(page, page < entry.usage_pages());
@@ -186,6 +227,23 @@ impl BuddyFrameAllocator {
         }
 
         Self { entries }
+    }
+
+    pub fn allocate_frames_range(&mut self, length: u64) -> Option<PhysFrame> {
+        self.entries
+            .iter_mut()
+            .find_map(|e| e.allocate_range(length))
+            .map(PhysFrame::containing_address)
+    }
+
+    pub unsafe fn deallocate_frames_range(&mut self, frame: PhysFrame, length: u64) {
+        if let Some(e) = self
+            .entries
+            .iter_mut()
+            .find(|e| e.contains_addr(frame.start_address()))
+        {
+            e.deallocate_range(frame.start_address(), length)
+        }
     }
 
     pub fn free_pages(&self) -> u64 {
@@ -201,23 +259,13 @@ impl BuddyFrameAllocator {
 
 unsafe impl FrameAllocator<Size4KiB> for BuddyFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
-        self.entries
-            .iter_mut()
-            .filter(|e| !e.start_phys.is_null() && e.size > e.used)
-            .find_map(BuddyEntry::allocate_page)
-            .map(PhysFrame::containing_address)
+        self.allocate_frames_range(1)
     }
 }
 
 impl FrameDeallocator<Size4KiB> for BuddyFrameAllocator {
     unsafe fn deallocate_frame(&mut self, frame: PhysFrame) {
-        if let Some(e) = self
-            .entries
-            .iter_mut()
-            .find(|e| e.contains_addr(frame.start_address()))
-        {
-            e.deallocate_page(frame.start_address())
-        }
+        self.deallocate_frames_range(frame, 1)
     }
 }
 

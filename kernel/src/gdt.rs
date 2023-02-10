@@ -4,7 +4,7 @@ use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::VirtAddr;
 
-pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
+use crate::consts::*;
 
 //**************************************************************************************************
 // Early
@@ -59,13 +59,11 @@ impl EarlyGdt {
 // Thread locals
 //**************************************************************************************************
 
-const CPU_STACK_SIZE: usize = 256;
+#[thread_local]
+static mut BACKUP_STACK: [u8; KERNEL_BACKUP_STACK_SIZE] = [0; KERNEL_BACKUP_STACK_SIZE];
 
 #[thread_local]
-pub static mut CPU_STACK: [u8; CPU_STACK_SIZE] = [0; CPU_STACK_SIZE];
-
-#[thread_local]
-pub static mut TSS: TaskStateSegment = TaskStateSegment::new();
+static mut TSS: TaskStateSegment = TaskStateSegment::new();
 
 #[thread_local]
 static mut GDT: Gdt = Gdt::empty();
@@ -106,9 +104,9 @@ impl Gdt {
 
     pub fn init(&mut self, _cpu_id: u32) {
         unsafe {
-            TSS.privilege_stack_table[usize::from(DOUBLE_FAULT_IST_INDEX)] = {
-                let stack_start = VirtAddr::from_ptr(&CPU_STACK);
-                stack_start + CPU_STACK_SIZE
+            TSS.privilege_stack_table[usize::from(KERNEL_BACKUP_STACK_INDEX)] = {
+                let stack_start = VirtAddr::from_ptr(&BACKUP_STACK);
+                stack_start + KERNEL_BACKUP_STACK_SIZE
             };
 
             self.kernel_code = self.gdt.add_entry(Descriptor::kernel_code_segment());
