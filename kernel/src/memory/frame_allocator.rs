@@ -127,8 +127,7 @@ impl BuddyFrameAllocator {
 
         assert!(
             !table_addr.is_null(),
-            "MemoryRegion with size {} not found",
-            PAGE_SIZE
+            "MemoryRegion with size {PAGE_SIZE} not found",
         );
 
         let entries = unsafe {

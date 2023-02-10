@@ -20,10 +20,7 @@ pub fn init(phys_mem_offset: u64, regions: &'static MemoryRegions) {
     let mapper = unsafe { new_mapper(phys_mem_offset) };
     let allocator = BuddyFrameAllocator::new(phys_mem_offset, regions);
 
-    log::info!(
-        "Available memory {} MB",
-        allocator.free_pages() * 4096 >> 20
-    );
+    log::info!("Available memory {} MB", allocator.free_pages() >> 8);
 
     MEMORY_MANAGER.lock().init(mapper, allocator);
 }
