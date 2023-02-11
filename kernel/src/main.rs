@@ -16,7 +16,7 @@ static BOOTLOADER_CONFIG: BootloaderConfig = {
 
 fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     // Init logging.
-    devices::init_debug_output(info.framebuffer.as_mut());
+    devices::init_early(info.framebuffer.as_mut());
     logger::init(debug::write_log);
 
     log::info!("Spiky OS starting...");
@@ -45,6 +45,12 @@ fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     memory::init_heap();
 
     devices::init_local_apic(physical_memory_offset);
+
+    if let Some(rsdp_addr) = info.rsdp_addr.into_option() {
+        log::debug!("try to init acpi and io_apic");
+
+        devices::init_acpi(physical_memory_offset, rsdp_addr);
+    }
 
     interrupts::enable();
 

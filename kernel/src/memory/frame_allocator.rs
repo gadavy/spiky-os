@@ -6,6 +6,138 @@ use x86_64::{PhysAddr, VirtAddr};
 
 use crate::consts::*;
 
+pub struct BuddyFrameAllocator {
+    entries: &'static mut [BuddyEntry],
+}
+
+impl BuddyFrameAllocator {
+    pub fn new(phys_mem_offset: u64, regions: &[MemoryRegion]) -> Self {
+        let phys_mem_offset = VirtAddr::new(phys_mem_offset);
+
+        // First we need to find a MemoryRegion of the right size.
+        let mut table_addr = VirtAddr::zero();
+        let mut region_idx = 0;
+        let mut region_offset = 0;
+
+        for (idx, region) in Self::usable_regions(regions).enumerate() {
+            if region.end - region.start >= PAGE_SIZE {
+                table_addr = phys_mem_offset + region.start;
+                region_idx = idx;
+                region_offset = PAGE_SIZE;
+
+                break;
+            };
+        }
+
+        assert!(
+            !table_addr.is_null(),
+            "MemoryRegion with size {PAGE_SIZE} not found",
+        );
+
+        // Allocate buddy table and zero it.
+        let entries = unsafe {
+            core::slice::from_raw_parts_mut(
+                table_addr.as_mut_ptr::<BuddyEntry>(),
+                (PAGE_SIZE / BuddyEntry::SIZE) as usize,
+            )
+        };
+
+        for entry in entries.iter_mut() {
+            *entry = BuddyEntry::empty()
+        }
+
+        // Add regions to buddy table combining areas when possible.
+        for (idx, region) in Self::usable_regions(regions).enumerate() {
+            let mut region_start = PhysAddr::new(region.start);
+            let mut region_size = region.end - region.start;
+
+            if idx == region_idx {
+                if region_offset == region_size {
+                    continue;
+                } else {
+                    region_start += region_offset;
+                    region_size -= region_offset;
+                }
+            }
+
+            for entry in entries.iter_mut() {
+                if region_start + region_size == entry.start_phys {
+                    entry.start_phys = region_start;
+                    entry.start_virt = phys_mem_offset + region_start.as_u64();
+                    entry.size += region_size;
+
+                    break;
+                } else if region_start == entry.start_phys + entry.size {
+                    entry.size += region_size;
+
+                    break;
+                } else if entry.size == 0 {
+                    entry.start_phys = region_start;
+                    entry.start_virt = phys_mem_offset + region_start.as_u64();
+                    entry.size = region_size;
+
+                    break;
+                };
+            }
+        }
+
+        // Allocate buddy maps.
+        for entry in entries.iter_mut() {
+            for page in 0..entry.total_pages() {
+                entry.set_page_usage(page, page < entry.usage_pages());
+            }
+
+            entry.used = entry.usage_pages();
+            entry.skip = entry.usage_pages();
+        }
+
+        Self { entries }
+    }
+
+    pub fn allocate_frames_range(&mut self, length: u64) -> Option<PhysFrame> {
+        self.entries
+            .iter_mut()
+            .find_map(|e| e.allocate_range(length))
+            .map(PhysFrame::containing_address)
+    }
+
+    pub unsafe fn deallocate_frames_range(&mut self, frame: PhysFrame, length: u64) {
+        if let Some(e) = self
+            .entries
+            .iter_mut()
+            .find(|e| e.contains_addr(frame.start_address()))
+        {
+            e.deallocate_range(frame.start_address(), length)
+        }
+    }
+
+    pub fn free_pages(&self) -> u64 {
+        self.entries.iter().map(|e| e.total_pages() - e.used).sum()
+    }
+
+    fn usable_regions(regions: &[MemoryRegion]) -> impl Iterator<Item = &MemoryRegion> {
+        regions
+            .iter()
+            .filter(|r| r.kind == MemoryRegionKind::Usable)
+    }
+}
+
+unsafe impl FrameAllocator<Size4KiB> for BuddyFrameAllocator {
+    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+        self.allocate_frames_range(1)
+    }
+}
+
+impl FrameDeallocator<Size4KiB> for BuddyFrameAllocator {
+    unsafe fn deallocate_frame(&mut self, frame: PhysFrame) {
+        self.deallocate_frames_range(frame, 1)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Buddy entry
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[derive(Debug, Eq, PartialEq)]
 struct BuddyEntry {
     start_phys: PhysAddr,
@@ -138,134 +270,6 @@ impl BuddyEntry {
             value.set_bit(bit_index, is_used);
             addr.as_mut_ptr::<u8>().write(value);
         }
-    }
-}
-
-pub struct BuddyFrameAllocator {
-    entries: &'static mut [BuddyEntry],
-}
-
-impl BuddyFrameAllocator {
-    pub fn new(phys_mem_offset: u64, regions: &[MemoryRegion]) -> Self {
-        let phys_mem_offset = VirtAddr::new(phys_mem_offset);
-
-        // First we need to find a MemoryRegion of the right size.
-        let mut table_addr = VirtAddr::zero();
-        let mut region_idx = 0;
-        let mut region_offset = 0;
-
-        for (idx, region) in Self::usable_regions(regions).enumerate() {
-            if region.end - region.start >= PAGE_SIZE {
-                table_addr = phys_mem_offset + region.start;
-                region_idx = idx;
-                region_offset = PAGE_SIZE;
-
-                break;
-            };
-        }
-
-        assert!(
-            !table_addr.is_null(),
-            "MemoryRegion with size {PAGE_SIZE} not found",
-        );
-
-        // Allocate buddy table and zero it.
-        let entries = unsafe {
-            core::slice::from_raw_parts_mut(
-                table_addr.as_mut_ptr::<BuddyEntry>(),
-                (PAGE_SIZE / BuddyEntry::SIZE) as usize,
-            )
-        };
-
-        for entry in entries.iter_mut() {
-            *entry = BuddyEntry::empty()
-        }
-
-        // Add regions to buddy table combining areas when possible.
-        for (idx, region) in Self::usable_regions(regions).enumerate() {
-            let mut region_start = PhysAddr::new(region.start);
-            let mut region_size = region.end - region.start;
-
-            if idx == region_idx {
-                if region_offset == region_size {
-                    continue;
-                } else {
-                    region_start += region_offset;
-                    region_size -= region_offset;
-                }
-            }
-
-            for entry in entries.iter_mut() {
-                if region_start + region_size == entry.start_phys {
-                    entry.start_phys = region_start;
-                    entry.start_virt = phys_mem_offset + region_start.as_u64();
-                    entry.size += region_size;
-
-                    break;
-                } else if region_start == entry.start_phys + entry.size {
-                    entry.size += region_size;
-
-                    break;
-                } else if entry.size == 0 {
-                    entry.start_phys = region_start;
-                    entry.start_virt = phys_mem_offset + region_start.as_u64();
-                    entry.size = region_size;
-
-                    break;
-                };
-            }
-        }
-
-        // Allocate buddy maps.
-        for entry in entries.iter_mut() {
-            for page in 0..entry.total_pages() {
-                entry.set_page_usage(page, page < entry.usage_pages());
-            }
-
-            entry.used = entry.usage_pages();
-            entry.skip = entry.usage_pages();
-        }
-
-        Self { entries }
-    }
-
-    pub fn allocate_frames_range(&mut self, length: u64) -> Option<PhysFrame> {
-        self.entries
-            .iter_mut()
-            .find_map(|e| e.allocate_range(length))
-            .map(PhysFrame::containing_address)
-    }
-
-    pub unsafe fn deallocate_frames_range(&mut self, frame: PhysFrame, length: u64) {
-        if let Some(e) = self
-            .entries
-            .iter_mut()
-            .find(|e| e.contains_addr(frame.start_address()))
-        {
-            e.deallocate_range(frame.start_address(), length)
-        }
-    }
-
-    pub fn free_pages(&self) -> u64 {
-        self.entries.iter().map(|e| e.total_pages() - e.used).sum()
-    }
-
-    fn usable_regions(regions: &[MemoryRegion]) -> impl Iterator<Item = &MemoryRegion> {
-        regions
-            .iter()
-            .filter(|r| r.kind == MemoryRegionKind::Usable)
-    }
-}
-
-unsafe impl FrameAllocator<Size4KiB> for BuddyFrameAllocator {
-    fn allocate_frame(&mut self) -> Option<PhysFrame> {
-        self.allocate_frames_range(1)
-    }
-}
-
-impl FrameDeallocator<Size4KiB> for BuddyFrameAllocator {
-    unsafe fn deallocate_frame(&mut self, frame: PhysFrame) {
-        self.deallocate_frames_range(frame, 1)
     }
 }
 

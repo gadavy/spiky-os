@@ -1,3 +1,4 @@
+use x86_64::instructions::port::PortReadOnly;
 use x86_64::structures::idt::InterruptStackFrame;
 
 use super::eoi;
@@ -7,6 +8,10 @@ pub extern "x86-interrupt" fn pit_stack(_stack: InterruptStackFrame) {
 }
 
 pub extern "x86-interrupt" fn keyboard(_stack: InterruptStackFrame) {
+    let _: u8 = unsafe { PortReadOnly::new(0x60).read() };
+
+    log::debug!("keyboard interrupt!");
+
     eoi();
 }
 
@@ -51,6 +56,10 @@ pub extern "x86-interrupt" fn pci3(_stack: InterruptStackFrame) {
 }
 
 pub extern "x86-interrupt" fn mouse(_stack: InterruptStackFrame) {
+    let _: u8 = unsafe { PortReadOnly::new(0x60).read() };
+
+    log::debug!("mouse interrupt!");
+
     eoi();
 }
 

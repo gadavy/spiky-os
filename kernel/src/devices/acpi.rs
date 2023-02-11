@@ -2,11 +2,11 @@ use core::ptr::NonNull;
 
 use acpi::fadt::Fadt;
 use acpi::madt::Madt;
+use acpi::platform::interrupt::Apic;
 use acpi::sdt::Signature;
 use acpi::{AcpiTables, HpetInfo, PhysicalMapping};
 use spin::RwLock;
-use x86_64::structures::paging::PageTableFlags;
-use x86_64::{PhysAddr, VirtAddr};
+use x86_64::VirtAddr;
 
 pub static ACPI: RwLock<AcpiInfo> = RwLock::new(AcpiInfo::empty());
 
@@ -31,15 +31,11 @@ impl AcpiInfo {
     }
 
     pub fn init(&mut self, phys_mem_offset: u64, rsdp_addr: u64) {
-        log::debug!("Parse ACPI tables...");
+        log::trace!("Parse ACPI tables...");
 
         let handler = AcpiMemoryMapper::new(phys_mem_offset);
-        let tables = match unsafe { AcpiTables::from_rsdp(handler, rsdp_addr as usize) } {
-            Ok(tables) => tables,
-            Err(e) => {
-                log::warn!(">>> parsing failed: {e:?}");
-                return;
-            }
+        let tables = unsafe {
+            AcpiTables::from_rsdp(handler, rsdp_addr as usize).expect("rsdp should be parsed")
         };
 
         if let Ok(hpet) = HpetInfo::new(&tables) {
@@ -74,6 +70,13 @@ impl AcpiInfo {
 
     pub fn madt(&self) -> Option<&MadtInfo> {
         self.madt.as_ref()
+    }
+
+    pub fn apic(&self) -> Option<&Apic> {
+        match &self.madt()?.interrupt_mode {
+            acpi::InterruptModel::Apic(apic) => Some(apic),
+            _ => None,
+        }
     }
 
     pub fn fadt(&self) -> Option<&FadtInfo> {
@@ -113,7 +116,7 @@ impl acpi::AcpiHandler for AcpiMemoryMapper {
         let virtual_address = phys_mem_offset + physical_address;
 
         PhysicalMapping::new(
-            usize::from(physical_address),
+            physical_address,
             NonNull::new(virtual_address.as_mut_ptr()).unwrap(),
             size,
             size,

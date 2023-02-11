@@ -6,7 +6,7 @@ use x86_64::VirtAddr;
 use crate::consts::*;
 use crate::memory::KERNEL_MAPPER;
 
-const TLS_ALIGN: u64 = 16;
+const TLS_ALIGN: u64 = 8;
 
 pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
     log::trace!("Init paging");
@@ -27,12 +27,12 @@ pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
         | PageTableFlags::NO_EXECUTE
         | PageTableFlags::GLOBAL;
 
+    let mut mapper_guard = KERNEL_MAPPER.lock();
+    let mapper = mapper_guard.as_mut().expect("expected initialized mapper");
+
     for page in page_range {
         unsafe {
-            KERNEL_MAPPER
-                .lock()
-                .as_mut()
-                .expect("failed to get KernelMapper for mapping TLS")
+            mapper
                 .map(page, flags)
                 .expect("failed to allocate page for TLS")
                 .flush();

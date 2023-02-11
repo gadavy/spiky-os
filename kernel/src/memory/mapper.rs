@@ -1,10 +1,10 @@
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::mapper::MapperFlush;
+use x86_64::structures::paging::mapper::{MapToError, MapperFlush, TranslateResult, UnmapError};
 use x86_64::structures::paging::{
     FrameAllocator, FrameDeallocator, Mapper, OffsetPageTable, Page, PageTableFlags, PhysFrame,
-    Size4KiB,
+    Size4KiB, Translate,
 };
-use x86_64::VirtAddr;
+use x86_64::{PhysAddr, VirtAddr};
 
 use crate::memory::frame_allocator::BuddyFrameAllocator;
 
@@ -31,12 +31,13 @@ impl KernelMapper {
         &mut self,
         page: Page<Size4KiB>,
         flags: PageTableFlags,
-    ) -> Option<MapperFlush<Size4KiB>> {
-        let frame = self.allocator.allocate_frame()?;
+    ) -> Result<MapperFlush<Size4KiB>, MapToError<Size4KiB>> {
+        let frame = self
+            .allocator
+            .allocate_frame()
+            .ok_or(MapToError::FrameAllocationFailed)?;
 
-        self.table
-            .map_to(page, frame, flags, &mut self.allocator)
-            .ok()
+        self.table.map_to(page, frame, flags, &mut self.allocator)
     }
 
     pub unsafe fn map_phys(
@@ -44,16 +45,25 @@ impl KernelMapper {
         page: Page<Size4KiB>,
         frame: PhysFrame<Size4KiB>,
         flags: PageTableFlags,
-    ) -> Option<MapperFlush<Size4KiB>> {
-        self.table
-            .map_to(page, frame, flags, &mut self.allocator)
-            .ok()
+    ) -> Result<MapperFlush<Size4KiB>, MapToError<Size4KiB>> {
+        self.table.map_to(page, frame, flags, &mut self.allocator)
     }
 
-    pub unsafe fn unmap(&mut self, page: Page<Size4KiB>) -> Option<MapperFlush<Size4KiB>> {
-        let (frame, flusher) = self.table.unmap(page).ok()?;
+    pub unsafe fn unmap(
+        &mut self,
+        page: Page<Size4KiB>,
+    ) -> Result<MapperFlush<Size4KiB>, UnmapError> {
+        let (frame, flusher) = self.table.unmap(page)?;
         self.allocator.deallocate_frame(frame);
 
-        Some(flusher)
+        Ok(flusher)
+    }
+
+    pub fn translate(&self, addr: VirtAddr) -> Option<PhysAddr> {
+        match self.table.translate(addr) {
+            TranslateResult::Mapped { frame, .. } => Some(frame.start_address()),
+            TranslateResult::NotMapped => None,
+            TranslateResult::InvalidFrameAddress(_) => panic!("invalid frame addr"),
+        }
     }
 }
