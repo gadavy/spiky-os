@@ -435,6 +435,7 @@ dependencies = [
  "log",
  "slab_allocator_rs",
  "spin",
+ "x2apic",
  "x86",
  "x86_64",
 ]
@@ -500,6 +501,12 @@ name = "parking"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "427c3892f9e783d91cc128285287e70a59e206ca452770ece88a76f7a3eddd72"
+
+[[package]]
+name = "paste"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d01a5bd0424d00070b0098dd17ebca6f961a959dead1dbcbbbc1d1cd8d3deeba"
 
 [[package]]
 name = "pin-project"
@@ -910,6 +917,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
 dependencies = [
  "tap",
+]
+
+[[package]]
+name = "x2apic"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "547152b57dd1ae0ce7a4ef1c6470f6039aa7ed22e2179d5bc4f3eda1304e0db3"
+dependencies = [
+ "bit",
+ "bitflags",
+ "paste",
+ "raw-cpuid",
+ "x86_64",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 # SpikyOS
 
-SpikyOS is a hobby operating system written in [Rust](https://www.rust-lang.org/).
+SpikyOS is a hobby x86_64 operating system written in [Rust](https://www.rust-lang.org/).
 
 ## Create a bootable USB (mac)
 

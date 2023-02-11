@@ -2,6 +2,8 @@
 #![feature(abi_x86_interrupt)]
 #![cfg_attr(not(test), no_std)]
 
+extern crate alloc;
+
 pub mod debug;
 pub mod devices;
 pub mod framebuffer;

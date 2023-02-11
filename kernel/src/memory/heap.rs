@@ -3,7 +3,7 @@ use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
 use crate::consts::*;
-use crate::memory::PAGE_MAPPER;
+use crate::memory::KERNEL_MAPPER;
 
 #[cfg_attr(not(test), global_allocator)]
 static HEAP: LockedHeap = LockedHeap::empty();
@@ -20,7 +20,7 @@ pub fn init() {
 
     for page in page_range {
         unsafe {
-            PAGE_MAPPER
+            KERNEL_MAPPER
                 .lock()
                 .as_mut()
                 .expect("failed to get KernelMapper for mapping heap")

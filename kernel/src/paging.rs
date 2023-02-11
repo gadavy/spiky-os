@@ -4,7 +4,7 @@ use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
 use crate::consts::*;
-use crate::memory::PAGE_MAPPER;
+use crate::memory::KERNEL_MAPPER;
 
 const TLS_ALIGN: u64 = 16;
 
@@ -29,7 +29,7 @@ pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
 
     for page in page_range {
         unsafe {
-            PAGE_MAPPER
+            KERNEL_MAPPER
                 .lock()
                 .as_mut()
                 .expect("failed to get KernelMapper for mapping TLS")
@@ -58,6 +58,8 @@ pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
     }
 
     FsBase::write(end);
+
+    test()
 }
 
 // Test of zero values in thread BSS
@@ -68,7 +70,7 @@ static mut TBSS_TEST: u64 = 0;
 #[thread_local]
 static mut TDATA_TEST: u64 = u64::MAX;
 
-pub fn test() {
+fn test() {
     log::trace!("Test paging");
 
     unsafe {

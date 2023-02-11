@@ -17,6 +17,7 @@ x86_64 = "0.14.10"
 slab_allocator_rs = "1.0.2"
 acpi = "4.1.1"
 bit = "0.1.1"
+x2apic = "0.4.2"
 
 [profile.dev]
 panic = "abort"
