@@ -54,10 +54,10 @@ impl BuddyFrameAllocator {
             if idx == region_idx {
                 if region_offset == region_size {
                     continue;
-                } else {
-                    region_start += region_offset;
-                    region_size -= region_offset;
                 }
+
+                region_start += region_offset;
+                region_size -= region_offset;
             }
 
             for entry in entries.iter_mut() {

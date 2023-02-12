@@ -25,7 +25,7 @@ impl SerialPort {
         }
     }
 
-    pub fn init(&mut self) {
+    pub(super) fn init(&mut self) {
         unsafe {
             self.int_en.write(0x00); //     Disable interrupts
             self.line_ctrl.write(0x80); //  Enable DLAB (set baud rate divisor)

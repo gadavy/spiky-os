@@ -28,7 +28,7 @@ impl AcpiInfo {
         }
     }
 
-    pub fn init(&mut self, phys_mem_offset: VirtAddr, rsdp_addr: u64) {
+    pub(super) fn init(&mut self, phys_mem_offset: VirtAddr, rsdp_addr: u64) {
         log::trace!("Parse ACPI tables...");
 
         let handler = AcpiMemoryMapper::new(phys_mem_offset);

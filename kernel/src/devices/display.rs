@@ -19,7 +19,7 @@ impl Framebuffer {
         Self { inner: None }
     }
 
-    pub fn init(&mut self, info: FrameBufferInfo, buf: &'static mut [u8]) {
+    pub(super) fn init(&mut self, info: FrameBufferInfo, buf: &'static mut [u8]) {
         buf.fill(0); // clear screen.
 
         self.inner.replace(InnerFramebuffer {
@@ -28,6 +28,18 @@ impl Framebuffer {
             current_x: 0,
             current_y: 0,
         });
+    }
+}
+
+impl core::fmt::Write for Framebuffer {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        if let Some(inner) = self.inner.as_mut() {
+            for c in s.chars() {
+                inner.draw_char(c);
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -106,18 +118,6 @@ impl InnerFramebuffer {
     #[inline]
     fn color_bytes(&self, color: Color, intensity: u8) -> [u8; 4] {
         color.intensity(intensity).to_bytes(self.info.pixel_format)
-    }
-}
-
-impl core::fmt::Write for Framebuffer {
-    fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        if let Some(inner) = self.inner.as_mut() {
-            for c in s.chars() {
-                inner.draw_char(c);
-            }
-        }
-
-        Ok(())
     }
 }
 

@@ -19,7 +19,7 @@ impl LocalApic {
         }
     }
 
-    pub fn init(&self, phys_mem_offset: VirtAddr) {
+    pub(super) fn init(&self, phys_mem_offset: VirtAddr) {
         let apic_phys_addr = PhysAddr::new(unsafe { lapic::xapic_base() });
         let apic_virt_addr = phys_mem_offset + apic_phys_addr.as_u64();
 
@@ -40,7 +40,7 @@ impl LocalApic {
         self.init_ap();
     }
 
-    pub fn init_ap(&self) {
+    pub(super) fn init_ap(&self) {
         unsafe {
             if let Some(Some(inner)) = self.inner.get().as_mut() {
                 inner.enable();
@@ -48,9 +48,12 @@ impl LocalApic {
         }
     }
 
-    pub unsafe fn end_of_interrupt(&self) {
-        if let Some(Some(inner)) = self.inner.get().as_mut() {
-            inner.end_of_interrupt();
+    /// Signals end-of-interrupt.
+    pub fn end_of_interrupt(&self) {
+        unsafe {
+            if let Some(Some(inner)) = self.inner.get().as_mut() {
+                inner.end_of_interrupt();
+            }
         }
     }
 }

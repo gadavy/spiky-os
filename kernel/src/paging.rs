@@ -6,7 +6,7 @@ use x86_64::VirtAddr;
 use crate::consts::*;
 use crate::memory::KERNEL_MAPPER;
 
-const TLS_ALIGN: u64 = 16;
+const TLS_ALIGN: u64 = 8;
 
 pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
     log::trace!("Init paging");

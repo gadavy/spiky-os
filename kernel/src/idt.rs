@@ -29,7 +29,7 @@ pub fn init_early() {
             .alignment_check
             .set_handler_fn(exception::alignment_check);
 
-        EARLY_IDT.load()
+        EARLY_IDT.load();
     }
 }
 
