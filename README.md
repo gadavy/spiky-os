@@ -16,6 +16,13 @@ sudo dd if=uefi.img of=/dev/disk2 bs=1m
 diskutil eject /dev/disk2
 ```
 
+or
+
+```shell
+sudo cargo r -r -- flash /dev/disk2
+```
+
+
 ## Links
 
 blog:
