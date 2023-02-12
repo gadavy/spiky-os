@@ -74,15 +74,11 @@ fn flash(device: &str) {
         return;
     }
 
-    if !Command::new("diskutil")
+    Command::new("diskutil")
         .arg("eject")
         .arg(device)
         .status()
-        .unwrap()
-        .success()
-    {
-        return;
-    }
+        .unwrap();
 }
 
 #[cfg(not(any(target_os = "macos")))]
