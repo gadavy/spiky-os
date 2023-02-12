@@ -28,10 +28,20 @@ pub fn init(phys_mem_offset: u64, rsdp_addr: Option<u64>) {
         log::trace!("Parse ACPI");
         acpi::ACPI.write().init(phys_mem_offset, rsdp_addr);
 
-        log::trace!("Init IO APIC");
-        io_apic::init(phys_mem_offset);
+        let acpi_info = acpi::ACPI.read();
 
-        if let Some(century) = acpi::ACPI.read().century_reg {
+        if let Some((apic, bsp)) = acpi_info
+            .apic
+            .as_ref()
+            .zip(acpi_info.boot_processor.as_ref())
+        {
+            log::trace!("Init IO APIC");
+
+            let bsp_apic_id = u8::try_from(bsp.local_apic_id).unwrap();
+            io_apic::IO_APICS.init(phys_mem_offset, bsp_apic_id, apic);
+        }
+
+        if let Some(century) = acpi_info.century_reg {
             log::trace!("Init RTC");
             rtc::RTC.lock().init(century)
         }
