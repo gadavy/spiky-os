@@ -4,7 +4,7 @@ use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::VirtAddr;
 
-use crate::consts::*;
+use crate::prelude::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Early

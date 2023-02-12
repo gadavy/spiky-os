@@ -13,7 +13,7 @@ pub mod logger;
 pub mod memory;
 pub mod paging;
 
-pub mod consts {
+pub mod prelude {
     pub const PAGE_SHIFT: u64 = 12;
     pub const PAGE_SIZE: u64 = 1 << PAGE_SHIFT;
     pub const PAGE_OFFSET_MASK: u64 = PAGE_SIZE - 1;

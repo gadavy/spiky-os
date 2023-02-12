@@ -4,7 +4,7 @@ use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
-use crate::consts::*;
+use crate::prelude::*;
 
 pub struct BuddyFrameAllocator {
     entries: &'static mut [BuddyEntry],

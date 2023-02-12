@@ -18,6 +18,9 @@ pub fn init_early(info: Option<&'static mut FrameBuffer>) {
     };
 }
 
+/// # Panics
+///
+/// Will panic when casting interrupt ids to [u8] failed.
 pub fn init(phys_mem_offset: u64, rsdp_addr: Option<u64>) {
     let phys_mem_offset = VirtAddr::new(phys_mem_offset);
 
@@ -43,7 +46,7 @@ pub fn init(phys_mem_offset: u64, rsdp_addr: Option<u64>) {
 
         if let Some(century) = acpi_info.century_reg {
             log::trace!("Init RTC");
-            rtc::RTC.lock().init(century)
+            rtc::RTC.lock().init(century);
         }
     }
 }

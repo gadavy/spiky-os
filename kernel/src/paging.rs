@@ -3,8 +3,8 @@ use x86_64::registers::model_specific::FsBase;
 use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
-use crate::consts::*;
 use crate::memory::KERNEL_MAPPER;
+use crate::prelude::*;
 
 const TLS_ALIGN: u64 = 8;
 

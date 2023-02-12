@@ -2,8 +2,8 @@ use slab_allocator_rs::LockedHeap;
 use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
-use crate::consts::*;
 use crate::memory::KERNEL_MAPPER;
+use crate::prelude::*;
 
 #[cfg_attr(not(test), global_allocator)]
 static HEAP: LockedHeap = LockedHeap::empty();

@@ -1,9 +1,9 @@
 use x86_64::structures::idt::InterruptDescriptorTable;
 use x86_64::PrivilegeLevel;
 
-use super::consts::*;
 use super::interrupts::exception;
 use super::interrupts::irq;
+use super::prelude::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Early

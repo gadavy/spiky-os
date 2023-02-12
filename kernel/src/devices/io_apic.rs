@@ -53,15 +53,12 @@ impl IoApics {
                 io_apic,
                 gsi_start,
                 gsi_end,
-            })
+            });
         }
     }
 
     unsafe fn init_override(&self, irq: u8, apic_id: u8, overrides: &[InterruptSourceOverride]) {
-        let (gci, trigger_mode, polarity) = match prepare_override(irq, overrides) {
-            Some((gci, trigger_mode, polarity)) => (gci, trigger_mode, polarity),
-            None => return,
-        };
+        let Some((gci, trigger_mode, polarity)) = prepare_override(irq, overrides) else { return };
 
         let mut entry = RedirectionTableEntry::default();
         entry.set_vector(32 + irq);
@@ -69,7 +66,7 @@ impl IoApics {
         entry.set_flags(irq_frags(trigger_mode, polarity));
 
         if let Some(io_apic) = self.find_io_apic(gci) {
-            io_apic.set_table_entry(gci, entry)
+            io_apic.set_table_entry(gci, entry);
         }
     }
 
