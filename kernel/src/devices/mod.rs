@@ -5,7 +5,7 @@ pub mod acpi;
 mod cpu;
 pub mod display;
 pub mod io_apic;
-pub mod lapic;
+pub mod local_apic;
 pub mod rtc;
 pub mod serial;
 
@@ -22,7 +22,7 @@ pub fn init(phys_mem_offset: u64, rsdp_addr: Option<u64>) {
     let phys_mem_offset = VirtAddr::new(phys_mem_offset);
 
     log::trace!("Init Local APIC");
-    lapic::init(phys_mem_offset);
+    local_apic::LOCAL_APIC.init(phys_mem_offset);
 
     if let Some(rsdp_addr) = rsdp_addr {
         log::trace!("Parse ACPI");

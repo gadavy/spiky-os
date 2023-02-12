@@ -1,10 +1,10 @@
-use crate::devices::lapic;
+use crate::devices::local_apic;
 
 pub mod exception;
 pub mod irq;
 
 fn eoi() {
-    unsafe { lapic::LOCAL_APIC.as_mut().unwrap().end_of_interrupt() };
+    unsafe { local_apic::LOCAL_APIC.end_of_interrupt() };
 }
 
 /// Halts the CPU until the next interrupt arrives.
