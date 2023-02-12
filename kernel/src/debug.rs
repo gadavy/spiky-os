@@ -27,10 +27,9 @@ fn write_serial(record: &log::Record) {
 
 fn write_display(record: &log::Record) {
     let mut display = super::devices::display::DISPLAY.lock();
-    let Some(writer) = display.as_mut() else { return; };
 
     let _ = writeln!(
-        writer,
+        display,
         "[{} {}] {}",
         record.target(),
         record.level(),

@@ -10,23 +10,18 @@ use crate::memory::KERNEL_MAPPER;
 
 static mut IO_APICS: Vec<IoApicWrapper> = Vec::new();
 
-pub fn init(phys_mem_offset: u64) {
+pub fn init(phys_mem_offset: VirtAddr) {
     let acpi = super::acpi::ACPI.read();
-    let Some(apic) = acpi.apic() else { return };
-    let Some(info) = acpi.madt() else { return };
+    let Some(apic) = &acpi.apic else { return };
+    let Some(bsp_info) = &acpi.boot_processor else { return };
 
-    let bsp_apic_id = info
-        .processor_info
-        .as_ref()
-        .unwrap()
-        .boot_processor
-        .local_apic_id as u8;
+    let bsp_apic_id = u8::try_from(bsp_info.local_apic_id).unwrap();
 
     for io_apic in &apic.io_apics {
-        unsafe { init_io_apic(VirtAddr::new(phys_mem_offset), io_apic) };
+        unsafe { init_io_apic(phys_mem_offset, io_apic) };
     }
 
-    //Map the legacy PC-compatible IRQs (0-15).
+    // Map the legacy PC-compatible IRQs (0-15).
     for legacy_irq in 0..=15 {
         unsafe { init_override(legacy_irq, bsp_apic_id, &apic.interrupt_source_overrides) };
     }

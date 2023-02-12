@@ -6,7 +6,7 @@ use x86_64::structures::paging::{
 };
 use x86_64::{PhysAddr, VirtAddr};
 
-use crate::memory::frame_allocator::BuddyFrameAllocator;
+use super::BuddyFrameAllocator;
 
 pub struct KernelMapper {
     table: OffsetPageTable<'static>,
@@ -63,7 +63,7 @@ impl KernelMapper {
         match self.table.translate(addr) {
             TranslateResult::Mapped { frame, .. } => Some(frame.start_address()),
             TranslateResult::NotMapped => None,
-            TranslateResult::InvalidFrameAddress(_) => panic!("invalid frame addr"),
+            TranslateResult::InvalidFrameAddress(addr) => panic!("invalid frame addr: {addr:?}"),
         }
     }
 }

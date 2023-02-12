@@ -22,7 +22,7 @@ impl Rtc {
         }
     }
 
-    pub fn init_century_reg(&mut self, century_reg: u8) {
+    pub fn init(&mut self, century_reg: u8) {
         self.century_reg.replace(century_reg);
     }
 

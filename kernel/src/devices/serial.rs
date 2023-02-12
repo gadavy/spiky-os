@@ -4,11 +4,6 @@ use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 pub static COM1: Mutex<SerialPort> = Mutex::new(SerialPort::empty(0x3F8));
 pub static COM2: Mutex<SerialPort> = Mutex::new(SerialPort::empty(0x2F8));
 
-pub fn init() {
-    COM1.lock().init();
-    COM2.lock().init();
-}
-
 pub struct SerialPort {
     data: Port<u8>,
     int_en: PortWriteOnly<u8>,
@@ -30,7 +25,7 @@ impl SerialPort {
         }
     }
 
-    fn init(&mut self) {
+    pub fn init(&mut self) {
         unsafe {
             self.int_en.write(0x00); //     Disable interrupts
             self.line_ctrl.write(0x80); //  Enable DLAB (set baud rate divisor)

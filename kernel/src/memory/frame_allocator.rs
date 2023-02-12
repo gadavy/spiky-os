@@ -14,7 +14,7 @@ impl BuddyFrameAllocator {
     pub fn new(phys_mem_offset: u64, regions: &[MemoryRegion]) -> Self {
         let phys_mem_offset = VirtAddr::new(phys_mem_offset);
 
-        // First we need to find a MemoryRegion of the right size.
+        // First we need to find a MemoryRegion for buddy table.
         let mut table_addr = VirtAddr::zero();
         let mut region_idx = 0;
         let mut region_offset = 0;
@@ -43,7 +43,7 @@ impl BuddyFrameAllocator {
         };
 
         for entry in entries.iter_mut() {
-            *entry = BuddyEntry::empty()
+            *entry = BuddyEntry::empty();
         }
 
         // Add regions to buddy table combining areas when possible.
@@ -107,7 +107,7 @@ impl BuddyFrameAllocator {
             .iter_mut()
             .find(|e| e.contains_addr(frame.start_address()))
         {
-            e.deallocate_range(frame.start_address(), length)
+            e.deallocate_range(frame.start_address(), length);
         }
     }
 
@@ -130,7 +130,7 @@ unsafe impl FrameAllocator<Size4KiB> for BuddyFrameAllocator {
 
 impl FrameDeallocator<Size4KiB> for BuddyFrameAllocator {
     unsafe fn deallocate_frame(&mut self, frame: PhysFrame) {
-        self.deallocate_frames_range(frame, 1)
+        self.deallocate_frames_range(frame, 1);
     }
 }
 
@@ -233,7 +233,7 @@ impl BuddyEntry {
             }
 
             if free_count == 0 {
-                free_page = page
+                free_page = page;
             }
 
             free_count += 1;

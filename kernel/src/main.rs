@@ -44,13 +44,7 @@ fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
 
     memory::init_heap();
 
-    devices::init_local_apic(physical_memory_offset);
-
-    if let Some(rsdp_addr) = info.rsdp_addr.into_option() {
-        log::debug!("try to init acpi and io_apic");
-
-        devices::init_acpi(physical_memory_offset, rsdp_addr);
-    }
+    devices::init(physical_memory_offset, info.rsdp_addr.into_option());
 
     interrupts::enable();
 

@@ -6,9 +6,9 @@ use crate::memory::KERNEL_MAPPER;
 
 pub static mut LOCAL_APIC: Option<LocalApic> = None;
 
-pub fn init(phys_mem_offset: u64) {
+pub fn init(phys_mem_offset: VirtAddr) {
     let apic_phys_addr = PhysAddr::new(unsafe { xapic_base() });
-    let apic_virt_addr = VirtAddr::new(apic_phys_addr.as_u64()) + phys_mem_offset;
+    let apic_virt_addr = phys_mem_offset + apic_phys_addr.as_u64();
 
     if !super::cpu::has_x2apic() {
         unsafe { map_memory(apic_phys_addr, apic_virt_addr) };

@@ -6,7 +6,7 @@ use x86_64::VirtAddr;
 use crate::consts::*;
 use crate::memory::KERNEL_MAPPER;
 
-const TLS_ALIGN: u64 = 8;
+const TLS_ALIGN: u64 = 16;
 
 pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
     log::trace!("Init paging");
@@ -59,7 +59,7 @@ pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
 
     FsBase::write(end);
 
-    test()
+    test();
 }
 
 // Test of zero values in thread BSS
