@@ -56,13 +56,26 @@ impl LocalApic {
             }
         }
     }
+
+    /// Sends an INIT IPI to the processors in dest
+    pub unsafe fn send_init_ipi(&self, dest: u32) {
+        if let Some(Some(inner)) = self.inner.get().as_mut() {
+            inner.send_init_ipi(dest);
+        }
+    }
+
+    /// Sends a start-up IPI to the processors in dest.
+    pub unsafe fn send_start_ipi(&self, vector: u8, dest: u32) {
+        if let Some(Some(inner)) = self.inner.get().as_mut() {
+            inner.send_sipi(vector, dest);
+        }
+    }
 }
 
 unsafe impl Sync for LocalApic {}
 
 unsafe fn map_memory(phys_addr: PhysAddr, virt_addr: VirtAddr) {
-    let mut mapper_guard = KERNEL_MAPPER.lock();
-    let mapper = mapper_guard.as_mut().expect("expected initialized mapper");
+    let mut mapper = KERNEL_MAPPER.lock();
 
     let page = Page::containing_address(virt_addr);
     let frame = PhysFrame::containing_address(phys_addr);

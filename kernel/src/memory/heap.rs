@@ -22,14 +22,12 @@ pub fn init() {
         unsafe {
             KERNEL_MAPPER
                 .lock()
-                .as_mut()
-                .expect("failed to get KernelMapper for mapping heap")
                 .map(page, flags)
                 .expect("failed to map heap memory")
                 .flush();
         }
     }
 
-    // Safety: we map memory for stack addresses.
+    // Safety: we map memory for heap.
     unsafe { HEAP.init(heap_start.as_u64() as usize, KERNEL_HEAP_SIZE as usize) };
 }

@@ -1,5 +1,7 @@
 use x86_64::structures::idt::InterruptDescriptorTable;
-use x86_64::PrivilegeLevel;
+use x86_64::{PrivilegeLevel, VirtAddr};
+
+use crate::memory::KERNEL_MAPPER;
 
 use super::interrupts::exception;
 use super::interrupts::irq;
@@ -41,13 +43,38 @@ pub fn init_early() {
 static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 
 /// Initializes a BSP IDT.
-pub fn init_bsp() {
+pub fn init_bsp(phys_mem_offset: u64) {
     log::trace!("Init BSP IDT");
 
-    unsafe { init_generic(true, &mut IDT) };
+    unsafe { init_generic(true, VirtAddr::new(phys_mem_offset), &mut IDT) };
 }
 
-unsafe fn init_generic(is_bsp: bool, idt: &mut InterruptDescriptorTable) {
+/// Initializes a BSP IDT.
+pub fn init_ap(phys_mem_offset: u64) {
+    log::trace!("Init AP IDT");
+
+    unsafe { init_generic(false, VirtAddr::new(phys_mem_offset), &mut IDT) };
+}
+
+unsafe fn init_generic(
+    is_bsp: bool,
+    phys_mem_offset: VirtAddr,
+    idt: &mut InterruptDescriptorTable,
+) {
+    let mut mapper = KERNEL_MAPPER.lock();
+
+    // Allocate 64 KiB of stack space for the backup stack.
+    let page_count = KERNEL_BACKUP_STACK_SIZE / PAGE_SIZE;
+
+    let frame = mapper
+        .allocate_frames_range(page_count)
+        .expect("failed to allocate pages for backup interrupt stack");
+
+    let stack_start = phys_mem_offset + frame.start_address().as_u64();
+    let stack_end = stack_start + KERNEL_BACKUP_STACK_SIZE;
+
+    super::gdt::TSS.interrupt_stack_table[usize::from(KERNEL_BACKUP_STACK_INDEX)] = stack_end;
+
     // Set up exceptions
     idt.divide_error.set_handler_fn(exception::divide_error);
     idt.debug.set_handler_fn(exception::debug);

@@ -152,7 +152,7 @@ dependencies = [
 [[package]]
 name = "bootloader"
 version = "0.11.0"
-source = "git+https://github.com/rust-osdev/bootloader#ca98936b24e21ff8af3d94d8fbf6fc21f48a1c18"
+source = "git+https://github.com/rust-osdev/bootloader#52a0a679bf7190538e96d211c96f41489e04a935"
 dependencies = [
  "anyhow",
  "async-process",
@@ -170,7 +170,7 @@ dependencies = [
 [[package]]
 name = "bootloader-boot-config"
 version = "0.11.0"
-source = "git+https://github.com/rust-osdev/bootloader#ca98936b24e21ff8af3d94d8fbf6fc21f48a1c18"
+source = "git+https://github.com/rust-osdev/bootloader#52a0a679bf7190538e96d211c96f41489e04a935"
 dependencies = [
  "serde",
 ]
@@ -178,7 +178,7 @@ dependencies = [
 [[package]]
 name = "bootloader_api"
 version = "0.11.0"
-source = "git+https://github.com/rust-osdev/bootloader#ca98936b24e21ff8af3d94d8fbf6fc21f48a1c18"
+source = "git+https://github.com/rust-osdev/bootloader#52a0a679bf7190538e96d211c96f41489e04a935"
 
 [[package]]
 name = "buddy_system_allocator"
@@ -357,9 +357,9 @@ dependencies = [
 
 [[package]]
 name = "futures-concurrency"
-version = "7.0.0"
+version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a740c32e1bde284ce2f51df98abd4fa38e9e539670443c111211777e3ab09927"
+checksum = "e06f199437c8a435c12ad153c5a1f4e131871cf6f6025585bb15e8cbb414f0dc"
 dependencies = [
  "bitvec",
  "futures-core",
@@ -525,6 +525,7 @@ dependencies = [
  "bit",
  "bootloader_api",
  "log",
+ "pic8259",
  "raw-cpuid",
  "slab_allocator_rs",
  "spin",
@@ -618,6 +619,15 @@ name = "paste"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d01a5bd0424d00070b0098dd17ebca6f961a959dead1dbcbbbc1d1cd8d3deeba"
+
+[[package]]
+name = "pic8259"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24ec21f514e2e16e94649f1d041ca4a7069b512c037ac156360652a775e6229d"
+dependencies = [
+ "x86_64",
+]
 
 [[package]]
 name = "pin-project"
@@ -812,9 +822,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.91"
+version = "1.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "877c235533714907a8c2464236f5c4b2a17262ef1bd71f38f35ea592c8da6883"
+checksum = "cad406b69c91885b5107daf2c29572f6c8cdb3c66826821e286c533490c0bc76"
 dependencies = [
  "itoa",
  "ryu",
@@ -823,9 +833,9 @@ dependencies = [
 
 [[package]]
 name = "signal-hook"
-version = "0.3.14"
+version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a253b5e89e2698464fc26b545c9edceb338e18a89effeeecfea192c3025be29d"
+checksum = "732768f1176d21d09e076c23a93123d40bba92d50c4058da34d45c8de8e682b9"
 dependencies = [
  "libc",
  "signal-hook-registry",
@@ -833,9 +843,9 @@ dependencies = [
 
 [[package]]
 name = "signal-hook-registry"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
+checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
 dependencies = [
  "libc",
 ]

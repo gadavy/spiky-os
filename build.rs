@@ -15,5 +15,6 @@ fn main() {
 
     // pass the disk image paths as env variables to the `main.rs`
     println!("cargo:rustc-env=UEFI_PATH={}", uefi_path.display());
+    println!("cargo:warning=binary path: {}", kernel.display());
     println!("cargo:warning=image path: {}", uefi_path.display());
 }

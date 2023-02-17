@@ -38,6 +38,8 @@ impl EarlyGdt {
     }
 
     pub fn init(&mut self) {
+        *self = Self::empty();
+
         self.kernel_code = self.gdt.add_entry(Descriptor::kernel_code_segment());
         self.kernel_data = self.gdt.add_entry(Descriptor::kernel_data_segment());
         self.kernel_tls = self.gdt.add_entry(Descriptor::kernel_data_segment());
@@ -60,20 +62,20 @@ impl EarlyGdt {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[thread_local]
-static mut BACKUP_STACK: [u8; KERNEL_BACKUP_STACK_SIZE] = [0; KERNEL_BACKUP_STACK_SIZE];
+static mut BACKUP_STACK: [u8; 256] = [0; 256];
 
 #[thread_local]
-static mut TSS: TaskStateSegment = TaskStateSegment::new();
+pub(crate) static mut TSS: TaskStateSegment = TaskStateSegment::new();
 
 #[thread_local]
 static mut GDT: Gdt = Gdt::empty();
 
 /// Init GDT with thread local.
-pub fn init(cpu_id: u32) {
-    log::trace!("Init GDT for cpu {cpu_id}");
+pub fn init() {
+    log::trace!("Init GDT");
 
     unsafe {
-        GDT.init(cpu_id);
+        GDT.init();
     }
 }
 
@@ -102,7 +104,7 @@ impl Gdt {
         }
     }
 
-    pub fn init(&mut self, _cpu_id: u32) {
+    pub fn init(&mut self) {
         unsafe {
             TSS.privilege_stack_table[usize::from(KERNEL_BACKUP_STACK_INDEX)] = {
                 let stack_start = VirtAddr::from_ptr(&BACKUP_STACK);

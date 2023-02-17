@@ -12,8 +12,13 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    Flash { device: String },
-    Qemu,
+    Flash {
+        device: String,
+    },
+    Qemu {
+        #[arg(long, default_value_t = 1)]
+        cpu_count: u8,
+    },
 }
 
 fn main() {
@@ -21,20 +26,20 @@ fn main() {
 
     match cli.command {
         Commands::Flash { device } => flash(&device),
-        Commands::Qemu => qemu(),
+        Commands::Qemu { cpu_count } => qemu(cpu_count),
     }
 }
 
-fn qemu() {
+fn qemu(cpu_count: u8) {
     let mut cmd = Command::new("qemu-system-x86_64");
-    cmd.arg("-smp")
-        .arg("cpus=4")
-        .arg("-serial")
-        .arg("stdio")
-        .arg("-bios")
+    cmd.arg("-bios")
         .arg(ovmf_prebuilt::ovmf_pure_efi())
         .arg("-drive")
-        .arg(format!("format=raw,file={UEFI_PATH}"));
+        .arg(format!("format=raw,file={UEFI_PATH}"))
+        .arg("-smp")
+        .arg(format!("cpus={cpu_count}"))
+        .arg("-serial")
+        .arg("stdio");
 
     let mut child = cmd.spawn().unwrap();
     child.wait().unwrap();

@@ -1,4 +1,4 @@
-use log::LevelFilter::Trace;
+use log::LevelFilter;
 use log::{Log, Metadata, Record};
 
 static mut KERNEL_LOGGER: KernelLogger = KernelLogger::empty();
@@ -6,7 +6,7 @@ static mut KERNEL_LOGGER: KernelLogger = KernelLogger::empty();
 pub fn init(write_fn: fn(record: &Record)) {
     unsafe {
         KERNEL_LOGGER.write_fn = write_fn;
-        log::set_max_level(Trace);
+        log::set_max_level(LevelFilter::Trace);
         log::set_logger(&KERNEL_LOGGER).expect("logger setup failed");
     }
 }

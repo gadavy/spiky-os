@@ -6,14 +6,14 @@ use x86_64::VirtAddr;
 use crate::memory::KERNEL_MAPPER;
 use crate::prelude::*;
 
-const TLS_ALIGN: u64 = 8;
+const TLS_ALIGN: u64 = 0xf;
 
 pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
     log::trace!("Init paging");
 
     // In some cases, `mem_size` and `file_size` might not be aligned, so fix this.
-    tls.mem_size += tls.mem_size % TLS_ALIGN;
-    tls.file_size += tls.file_size % TLS_ALIGN;
+    tls.mem_size += tls.mem_size & TLS_ALIGN;
+    tls.file_size += tls.file_size & TLS_ALIGN;
 
     // Map pages per cpu.
     let start = VirtAddr::new(KERNEL_PERCPU_OFFSET + KERNEL_PERCPU_SIZE * cpu_id);
@@ -27,8 +27,7 @@ pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
         | PageTableFlags::NO_EXECUTE
         | PageTableFlags::GLOBAL;
 
-    let mut mapper_guard = KERNEL_MAPPER.lock();
-    let mapper = mapper_guard.as_mut().expect("expected initialized mapper");
+    let mut mapper = KERNEL_MAPPER.lock();
 
     for page in page_range {
         unsafe {

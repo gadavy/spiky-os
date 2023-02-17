@@ -2,7 +2,7 @@ use bootloader_api::info::FrameBuffer;
 use x86_64::VirtAddr;
 
 pub mod acpi;
-mod cpu;
+pub mod cpu;
 pub mod display;
 pub mod io_apic;
 pub mod local_apic;
@@ -23,6 +23,9 @@ pub fn init_early(info: Option<&'static mut FrameBuffer>) {
 /// Will panic when casting interrupt ids to [u8] failed.
 pub fn init(phys_mem_offset: u64, rsdp_addr: Option<u64>) {
     let phys_mem_offset = VirtAddr::new(phys_mem_offset);
+
+    log::trace!("Disable pic");
+    disable_pic();
 
     log::trace!("Init Local APIC");
     local_apic::LOCAL_APIC.init(phys_mem_offset);
@@ -48,5 +51,22 @@ pub fn init(phys_mem_offset: u64, rsdp_addr: Option<u64>) {
             log::trace!("Init RTC");
             rtc::RTC.lock().init(century);
         }
+
+        log::trace!("Init AP cores");
+        cpu::init_ap_cores(phys_mem_offset, &acpi_info.ap_processors);
+    }
+}
+
+pub fn init_ap() {
+    local_apic::LOCAL_APIC.init_ap();
+
+    cpu::set_ap_is_ready();
+}
+
+fn disable_pic() {
+    unsafe {
+        let mut pic = pic8259::ChainedPics::new(0x20, 0xA0);
+        pic.initialize();
+        pic.disable();
     }
 }

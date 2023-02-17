@@ -44,3 +44,20 @@ https://nfil.dev/kernel/rust/coding/rust-kernel-to-userspace-and-back/
 
 https://github.com/vinaychandra/MoonDustKernel/blob/1918d302c932a9b610944930e38790156d3f7c53/src/arch/x86_64/memory/cpu_local.rs
 https://github.com/vinaychandra/MoonDustKernel/blob/1918d302c932a9b610944930e38790156d3f7c53/src/common/memory/cpu_local.rs
+
+https://nfil.dev/kernel/rust/coding/rust-kernel-to-userspace-and-back/
+
+```shell
+    ; DEBUGGING
+    mov dx, 0x3F8
+    mov al, 'T'
+    out dx, al
+    mov al, 'E'
+    out dx, al
+    mov al, 'S'
+    out dx, al
+    mov al, 'T'
+    out dx, al
+    mov al, '\n'
+    out dx, al
+```

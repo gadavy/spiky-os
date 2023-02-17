@@ -116,9 +116,11 @@ impl BuddyFrameAllocator {
     }
 
     fn usable_regions(regions: &[MemoryRegion]) -> impl Iterator<Item = &MemoryRegion> {
-        regions
-            .iter()
-            .filter(|r| r.kind == MemoryRegionKind::Usable)
+        regions.iter().filter(|r| Self::usable_region(r))
+    }
+
+    fn usable_region(r: &MemoryRegion) -> bool {
+        r.kind == MemoryRegionKind::Usable && !(r.start..r.end).contains(&TRAMPOLINE)
     }
 }
 

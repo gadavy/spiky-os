@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 

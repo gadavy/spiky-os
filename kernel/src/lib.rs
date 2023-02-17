@@ -4,26 +4,93 @@
 
 extern crate alloc;
 
-pub mod debug;
-pub mod devices;
-pub mod gdt;
-pub mod idt;
-pub mod interrupts;
-pub mod logger;
-pub mod memory;
-pub mod paging;
+use bootloader_api::info::TlsTemplate;
+use spin::Once;
 
-pub mod prelude {
-    pub const PAGE_SHIFT: u64 = 12;
-    pub const PAGE_SIZE: u64 = 1 << PAGE_SHIFT;
-    pub const PAGE_OFFSET_MASK: u64 = PAGE_SIZE - 1;
+mod debug;
+mod devices;
+mod gdt;
+mod idt;
+mod interrupts;
+mod logger;
+mod memory;
+mod paging;
+mod prelude;
 
-    pub const KERNEL_BACKUP_STACK_SIZE: usize = 65536; // 64 KB
-    pub const KERNEL_BACKUP_STACK_INDEX: u16 = 0;
+static PHYS_MEMORY_OFFSET: Once<u64> = Once::new();
+static TLS_TEMPLATE: Once<TlsTemplate> = Once::new();
 
-    pub const KERNEL_PERCPU_SIZE: u64 = 0x10000;
-    pub const KERNEL_PERCPU_OFFSET: u64 = 0xffff_fd80_0000_0000;
+pub fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
+    // Init logging.
+    devices::init_early(info.framebuffer.as_mut());
+    logger::init(debug::write_log);
 
-    pub const KERNEL_HEAP_SIZE: u64 = 1024 * 1024; // 1 MB
-    pub const KERNEL_HEAP_OFFSET: u64 = 0xffff_fe80_0000_0000;
+    let phys_mem_offset = info
+        .physical_memory_offset
+        .into_option()
+        .expect("Physical memory offset not specified in boot information");
+
+    let tls_template = info
+        .tls_template
+        .into_option()
+        .expect("TLS template not specified in boot information");
+
+    PHYS_MEMORY_OFFSET.call_once(|| phys_mem_offset);
+    TLS_TEMPLATE.call_once(|| tls_template);
+
+    // Init GDT and IDT early before TLS initialized.
+    gdt::init_early();
+    idt::init_early();
+
+    // Init memory and TLS.
+    memory::init(phys_mem_offset, &info.memory_regions);
+    paging::init(0, tls_template);
+
+    // Init GDT and IDT with TLS.
+    gdt::init();
+    idt::init_bsp(phys_mem_offset);
+
+    // Init kernel heap.
+    memory::init_heap();
+
+    devices::init(phys_mem_offset, info.rsdp_addr.into_option());
+
+    interrupts::enable();
+
+    log::info!("Spiky OS started...");
+
+    loop {
+        interrupts::hlt();
+    }
+}
+
+fn ap_entry(cpu_id: u64) -> ! {
+    log::info!("AP CORE_{cpu_id} starting...");
+
+    let phys_mem_offset = PHYS_MEMORY_OFFSET
+        .get()
+        .copied()
+        .expect("Physical memory offset should be initialized");
+
+    let tls_template = TLS_TEMPLATE
+        .get()
+        .copied()
+        .expect("TLS template should be initialized");
+
+    // Init GDT and IDT early before TLS initialized.
+    gdt::init_early();
+    idt::init_early();
+
+    // Init TLS.
+    paging::init(cpu_id, tls_template);
+
+    // Init GDT and IDT with TLS.
+    gdt::init();
+    idt::init_ap(phys_mem_offset);
+
+    devices::init_ap();
+
+    loop {
+        interrupts::hlt();
+    }
 }

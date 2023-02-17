@@ -19,6 +19,7 @@ acpi = "4.1.1"
 bit = "0.1.1"
 x2apic = "0.4.2"
 raw-cpuid = "10.6.1"
+pic8259 = "0.10.2"
 
 [profile.dev]
 panic = "abort"
