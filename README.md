@@ -1,63 +1,36 @@
 # SpikyOS
 
+[![Test Status](https://github.com/gadavy/spiky-os/actions/workflows/test.yaml/badge.svg)](https://github.com/gadavy/spiky-os/actions/workflows/test.yaml)
+[![Check Status](https://github.com/gadavy/spiky-os/actions/workflows/check.yaml/badge.svg)](https://github.com/gadavy/spiky-os/actions/workflows/check.yaml)
+
 SpikyOS is a hobby x86_64 operating system written in [Rust](https://www.rust-lang.org/).
 
-## Create a bootable USB (mac)
+This project started from the seventh post of the second edition of [Writing an OS in Rust](https://os.phil-opp.com/) and by
+reading the [OSDev wiki](https://wiki.osdev.org/) along with many open source kernels.
 
-```shell
-cargo build --release
+## Quick start
 
-diskutil list
+On macOS, do the following:
 
-diskutil unmountDisk /dev/disk2
+1. Clone repository:
+    ```shell
+    git clone https://github.com/gadavy/spiky-os.git
+    ```
 
-sudo dd if=uefi.img of=/dev/disk2 bs=1m
+2. Install dependencies:
+    ```shell
+    brew install nasm
+    ```
 
-diskutil eject /dev/disk2
-```
+3. Build and run the kernel in QEMU:
+   ```shell
+   cargo r -r -- qemu --cpu-count=2
+   ```
 
-or
+## Create a bootable USB
+
+Currently only supported on macOS
 
 ```shell
 sudo cargo r -r -- flash /dev/disk2
-```
-
-
-## Links
-
-blog:
-https://os.phil-opp.com/testing/
-
-os wiki:
-https://wiki.osdev.org/Bare_Bones
-https://wiki.osdev.org/PCI
-
-os with syscalls:
-https://github.com/Narasimha1997/r3/blob/main/r3_kernel/src/cpu/mod.rs
-
-os from blog, but use bootloader 0.10
-https://github.com/HalogenPowered/os/tree/master/src
-
-https://github.com/theseus-os/Theseus/blob/theseus_main/kernel/pci/src/lib.rs
-
-https://nfil.dev/kernel/rust/coding/rust-kernel-to-userspace-and-back/
-
-https://github.com/vinaychandra/MoonDustKernel/blob/1918d302c932a9b610944930e38790156d3f7c53/src/arch/x86_64/memory/cpu_local.rs
-https://github.com/vinaychandra/MoonDustKernel/blob/1918d302c932a9b610944930e38790156d3f7c53/src/common/memory/cpu_local.rs
-
-https://nfil.dev/kernel/rust/coding/rust-kernel-to-userspace-and-back/
-
-```shell
-    ; DEBUGGING
-    mov dx, 0x3F8
-    mov al, 'T'
-    out dx, al
-    mov al, 'E'
-    out dx, al
-    mov al, 'S'
-    out dx, al
-    mov al, 'T'
-    out dx, al
-    mov al, '\n'
-    out dx, al
 ```

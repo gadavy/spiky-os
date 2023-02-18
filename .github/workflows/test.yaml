@@ -5,27 +5,28 @@ on:
 name: test
 jobs:
   required:
-    runs-on: ubuntu-latest
-    name: ubuntu / ${{ matrix.toolchain }}
     strategy:
       matrix:
-        toolchain: [ nightly ]
+        os: [ ubuntu-latest, macos-latest ]
+    name: ${{ matrix.os }} / test
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Install ${{ matrix.toolchain }}
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          default: true
-          components: rust-src
-      - name: Install deps
+      - name: Install deps (Linux)
+        if: runner.os == 'Linux'
         run: |
-          rustup target add x86_64-unknown-none
           sudo apt update
           sudo apt install -y --no-install-recommends nasm
+      - name: Install deps (MacOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install nasm
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
         uses: actions-rs/cargo@v1
