@@ -21,9 +21,11 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           default: true
           components: rust-src
-      - name: Install x86_64-unknown-none target
+      - name: Install deps
         run: |
           rustup target add x86_64-unknown-none
+          sudo apt update
+          sudo apt install -y --no-install-recommends nasm
       - name: cargo generate-lockfile
         if: hashFiles('Cargo.lock') == ''
         uses: actions-rs/cargo@v1
