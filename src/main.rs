@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 const UEFI_PATH: &str = env!("UEFI_PATH");
 
@@ -47,6 +47,8 @@ fn qemu(cpu_count: u8) {
 
 #[cfg(target_os = "macos")]
 fn flash(device: &str) {
+    use std::process::Stdio;
+
     if !Command::new("diskutil")
         .arg("info")
         .arg(device)
@@ -87,6 +89,6 @@ fn flash(device: &str) {
 }
 
 #[cfg(not(any(target_os = "macos")))]
-fn flash(device: &str) {
+fn flash(_device: &str) {
     println!("flash command unsupported.")
 }
