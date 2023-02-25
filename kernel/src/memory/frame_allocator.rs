@@ -1,19 +1,23 @@
 use core::ops::Range;
 
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
-use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
+use x86_64::structures::paging::{self, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
 use crate::prelude::*;
 
-pub struct BuddyFrameAllocator {
-    entries: &'static mut [BuddyEntry],
+pub struct FrameAllocator {
+    table: VirtAddr,
 }
 
-impl BuddyFrameAllocator {
-    pub fn new(phys_mem_offset: u64, regions: &[MemoryRegion]) -> Self {
-        let phys_mem_offset = VirtAddr::new(phys_mem_offset);
+impl FrameAllocator {
+    pub const fn empty() -> Self {
+        Self {
+            table: VirtAddr::zero(),
+        }
+    }
 
+    pub fn init(&mut self, phys_offset: VirtAddr, regions: &[MemoryRegion]) {
         // First we need to find a MemoryRegion for buddy table.
         let mut table_addr = VirtAddr::zero();
         let mut region_idx = 0;
@@ -21,7 +25,7 @@ impl BuddyFrameAllocator {
 
         for (idx, region) in Self::usable_regions(regions).enumerate() {
             if region.end - region.start >= PAGE_SIZE {
-                table_addr = phys_mem_offset + region.start;
+                table_addr = phys_offset + region.start;
                 region_idx = idx;
                 region_offset = PAGE_SIZE;
 
@@ -34,15 +38,10 @@ impl BuddyFrameAllocator {
             "MemoryRegion with size {PAGE_SIZE} not found",
         );
 
-        // Allocate buddy table and zero it.
-        let entries = unsafe {
-            core::slice::from_raw_parts_mut(
-                table_addr.as_mut_ptr::<BuddyEntry>(),
-                (PAGE_SIZE / BuddyEntry::SIZE) as usize,
-            )
-        };
+        self.table = table_addr;
 
-        for entry in entries.iter_mut() {
+        // Allocate buddy table and zero it.
+        for entry in self.entries_mut().iter_mut() {
             *entry = BuddyEntry::empty();
         }
 
@@ -60,10 +59,10 @@ impl BuddyFrameAllocator {
                 region_size -= region_offset;
             }
 
-            for entry in entries.iter_mut() {
+            for entry in self.entries_mut().iter_mut() {
                 if region_start + region_size == entry.start_phys {
                     entry.start_phys = region_start;
-                    entry.start_virt = phys_mem_offset + region_start.as_u64();
+                    entry.start_virt = phys_offset + region_start.as_u64();
                     entry.size += region_size;
 
                     break;
@@ -73,7 +72,7 @@ impl BuddyFrameAllocator {
                     break;
                 } else if entry.size == 0 {
                     entry.start_phys = region_start;
-                    entry.start_virt = phys_mem_offset + region_start.as_u64();
+                    entry.start_virt = phys_offset + region_start.as_u64();
                     entry.size = region_size;
 
                     break;
@@ -82,7 +81,7 @@ impl BuddyFrameAllocator {
         }
 
         // Allocate buddy maps.
-        for entry in entries.iter_mut() {
+        for entry in self.entries_mut().iter_mut() {
             for page in 0..entry.total_pages() {
                 entry.set_page_usage(page, page < entry.usage_pages());
             }
@@ -90,12 +89,10 @@ impl BuddyFrameAllocator {
             entry.used = entry.usage_pages();
             entry.skip = entry.usage_pages();
         }
-
-        Self { entries }
     }
 
     pub fn allocate_frames_range(&mut self, length: u64) -> Option<PhysFrame> {
-        self.entries
+        self.entries_mut()
             .iter_mut()
             .find_map(|e| e.allocate_range(length))
             .map(PhysFrame::containing_address)
@@ -103,7 +100,7 @@ impl BuddyFrameAllocator {
 
     pub unsafe fn deallocate_frames_range(&mut self, frame: PhysFrame, length: u64) {
         if let Some(e) = self
-            .entries
+            .entries_mut()
             .iter_mut()
             .find(|e| e.contains_addr(frame.start_address()))
         {
@@ -111,8 +108,18 @@ impl BuddyFrameAllocator {
         }
     }
 
-    pub fn free_pages(&self) -> u64 {
-        self.entries.iter().map(|e| e.total_pages() - e.used).sum()
+    fn entries_mut(&mut self) -> &mut [BuddyEntry] {
+        let data = self.table.as_mut_ptr::<BuddyEntry>();
+        let length = (PAGE_SIZE / BuddyEntry::SIZE) as usize;
+
+        unsafe { core::slice::from_raw_parts_mut(data, length) }
+    }
+
+    fn entries(&self) -> &[BuddyEntry] {
+        let data = self.table.as_mut_ptr::<BuddyEntry>();
+        let length = (PAGE_SIZE / BuddyEntry::SIZE) as usize;
+
+        unsafe { core::slice::from_raw_parts(data, length) }
     }
 
     fn usable_regions(regions: &[MemoryRegion]) -> impl Iterator<Item = &MemoryRegion> {
@@ -124,13 +131,13 @@ impl BuddyFrameAllocator {
     }
 }
 
-unsafe impl FrameAllocator<Size4KiB> for BuddyFrameAllocator {
+unsafe impl paging::FrameAllocator<Size4KiB> for FrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
         self.allocate_frames_range(1)
     }
 }
 
-impl FrameDeallocator<Size4KiB> for BuddyFrameAllocator {
+impl paging::FrameDeallocator<Size4KiB> for FrameAllocator {
     unsafe fn deallocate_frame(&mut self, frame: PhysFrame) {
         self.deallocate_frames_range(frame, 1);
     }
@@ -317,13 +324,20 @@ mod tests {
         }
     }
 
+    fn new_frame_allocator(regions: &[MemoryRegion]) -> FrameAllocator {
+        let mut allocator = FrameAllocator::empty();
+        allocator.init(VirtAddr::zero(), regions);
+
+        allocator
+    }
+
     #[test]
     fn one_memory_region() {
         let mem_area = TestMemoryArea::new();
-        let allocator = BuddyFrameAllocator::new(0, &[mem_area.region()]);
+        let allocator = new_frame_allocator(&[mem_area.region()]);
 
         assert_eq!(
-            allocator.entries[0],
+            allocator.entries()[0],
             BuddyEntry {
                 start_phys: mem_area.start_phys() + 4096u64,
                 start_virt: mem_area.start_virt() + 4096u64,
@@ -333,7 +347,7 @@ mod tests {
             }
         );
 
-        assert_eq!(allocator.entries[1], BuddyEntry::empty())
+        assert_eq!(allocator.entries()[1], BuddyEntry::empty())
     }
 
     #[test]
@@ -341,10 +355,10 @@ mod tests {
         let mem_area1 = TestMemoryArea::new();
         let _ = TestMemoryArea::new(); // unused area
         let mem_area2 = TestMemoryArea::new();
-        let allocator = BuddyFrameAllocator::new(0, &[mem_area1.region(), mem_area2.region()]);
+        let allocator = new_frame_allocator(&[mem_area1.region(), mem_area2.region()]);
 
         assert_eq!(
-            allocator.entries[0..2],
+            allocator.entries()[0..2],
             [
                 BuddyEntry {
                     start_phys: mem_area1.start_phys() + 4096u64, // sub buddy entries table size.
@@ -363,7 +377,7 @@ mod tests {
             ]
         );
 
-        for entry in allocator.entries[2..].iter() {
+        for entry in allocator.entries()[2..].iter() {
             assert_eq!(entry, &BuddyEntry::empty())
         }
     }
@@ -372,10 +386,10 @@ mod tests {
     fn combined_memory_regions() {
         let mem_area1 = TestMemoryArea::new();
         let mem_area2 = TestMemoryArea::new();
-        let allocator = BuddyFrameAllocator::new(0, &[mem_area1.region(), mem_area2.region()]);
+        let allocator = new_frame_allocator(&[mem_area1.region(), mem_area2.region()]);
 
         assert_eq!(
-            allocator.entries[0],
+            allocator.entries()[0],
             BuddyEntry {
                 start_phys: mem_area1.start_phys() + 4096u64, // sub buddy entries table size.
                 start_virt: mem_area1.start_virt() + 4096u64, // sub buddy entries table size.
@@ -385,7 +399,7 @@ mod tests {
             }
         );
 
-        for entry in allocator.entries[1..].iter() {
+        for entry in allocator.entries()[1..].iter() {
             assert_eq!(entry, &BuddyEntry::empty())
         }
     }
@@ -393,20 +407,28 @@ mod tests {
     #[test]
     fn allocate_frames() {
         let mem_area = TestMemoryArea::new();
-        let mut allocator = BuddyFrameAllocator::new(0, &[mem_area.region()]);
+        let mut allocator = new_frame_allocator(&[mem_area.region()]);
 
         assert_eq!(mem_area.page_usage_area(true)[0], 0b0000001);
 
-        let frame1 = allocator.allocate_frame().map(PhysFrame::start_address);
+        let frame1 = allocator
+            .allocate_frames_range(1)
+            .map(PhysFrame::start_address);
         assert_eq!(mem_area.page_usage_area(true)[0], 0b0000011);
 
-        let frame2 = allocator.allocate_frame().map(PhysFrame::start_address);
+        let frame2 = allocator
+            .allocate_frames_range(1)
+            .map(PhysFrame::start_address);
         assert_eq!(mem_area.page_usage_area(true)[0], 0b0000111);
 
-        let frame3 = allocator.allocate_frame().map(PhysFrame::start_address);
+        let frame3 = allocator
+            .allocate_frames_range(1)
+            .map(PhysFrame::start_address);
         assert_eq!(mem_area.page_usage_area(true)[0], 0b0001111);
 
-        let frame4 = allocator.allocate_frame().map(PhysFrame::start_address);
+        let frame4 = allocator
+            .allocate_frames_range(1)
+            .map(PhysFrame::start_address);
         assert_eq!(mem_area.page_usage_area(true)[0], 0b0001111);
 
         assert_eq!(frame1, Some(mem_area.start_phys() + 4096u64 * 2u64));
@@ -422,31 +444,31 @@ mod tests {
     #[test]
     fn deallocate_frames() {
         let mem_area = TestMemoryArea::new();
-        let mut allocator = BuddyFrameAllocator::new(0, &[mem_area.region()]);
+        let mut allocator = new_frame_allocator(&[mem_area.region()]);
 
-        assert_eq!(allocator.entries[0].used, 1);
-        assert_eq!(allocator.entries[0].skip, 1);
+        assert_eq!(allocator.entries_mut()[0].used, 1);
+        assert_eq!(allocator.entries_mut()[0].skip, 1);
 
-        let frame1 = allocator.allocate_frame().unwrap();
-        let frame2 = allocator.allocate_frame().unwrap();
-        let frame3 = allocator.allocate_frame().unwrap();
+        let frame1 = allocator.allocate_frames_range(1).unwrap();
+        let frame2 = allocator.allocate_frames_range(1).unwrap();
+        let frame3 = allocator.allocate_frames_range(1).unwrap();
 
         unsafe {
-            assert_eq!(allocator.entries[0].used, 4);
-            assert_eq!(allocator.entries[0].skip, 4);
+            assert_eq!(allocator.entries_mut()[0].used, 4);
+            assert_eq!(allocator.entries_mut()[0].skip, 4);
             assert_eq!(mem_area.page_usage_area(true)[0], 0b0001111);
 
-            allocator.deallocate_frame(frame1);
+            allocator.deallocate_frames_range(frame1, 1);
 
-            assert_eq!(allocator.entries[0].used, 3);
-            assert_eq!(allocator.entries[0].skip, 1);
+            assert_eq!(allocator.entries_mut()[0].used, 3);
+            assert_eq!(allocator.entries_mut()[0].skip, 1);
             assert_eq!(mem_area.page_usage_area(true)[0], 0b0001101);
 
-            allocator.deallocate_frame(frame2);
-            allocator.deallocate_frame(frame3);
+            allocator.deallocate_frames_range(frame2, 1);
+            allocator.deallocate_frames_range(frame3, 1);
 
-            assert_eq!(allocator.entries[0].used, 1);
-            assert_eq!(allocator.entries[0].skip, 1);
+            assert_eq!(allocator.entries_mut()[0].used, 1);
+            assert_eq!(allocator.entries_mut()[0].skip, 1);
             assert_eq!(mem_area.page_usage_area(true)[0], 0b0000001);
         }
     }

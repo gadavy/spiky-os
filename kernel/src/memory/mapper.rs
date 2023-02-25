@@ -1,14 +1,15 @@
-use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::mapper::{MapToError, MapperFlush, TranslateResult};
+use spin::Mutex;
+use x86_64::structures::paging::mapper::{MapToError, MapperFlush};
 use x86_64::structures::paging::{
-    FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PhysFrame, Size4KiB, Translate,
+    FrameAllocator as FrameAllocatorImpl, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags,
+    PhysFrame, Size4KiB, Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
-use super::BuddyFrameAllocator;
+use crate::memory::frame_allocator::FrameAllocator;
 
 pub struct KernelMapper {
-    inner: Option<InnerKernelMapper>,
+    inner: Option<PageMapper>,
 }
 
 impl KernelMapper {
@@ -16,17 +17,14 @@ impl KernelMapper {
         Self { inner: None }
     }
 
-    pub(super) unsafe fn init(&mut self, phys_mem_offset: u64, allocator: BuddyFrameAllocator) {
-        let phys_mem_offset = VirtAddr::new(phys_mem_offset);
-        let (level_4_table_frame, _) = Cr3::read();
-
-        let phys = level_4_table_frame.start_address();
-        let virt = phys_mem_offset + phys.as_u64();
-        let page_table_ptr = virt.as_mut_ptr();
-
-        let table = OffsetPageTable::new(&mut *page_table_ptr, phys_mem_offset);
-
-        self.inner.replace(InnerKernelMapper { table, allocator });
+    pub(super) fn init(
+        &mut self,
+        phys_offset: VirtAddr,
+        page_table: &'static mut PageTable,
+        allocator: &'static Mutex<FrameAllocator>,
+    ) {
+        self.inner
+            .replace(PageMapper::new(phys_offset, page_table, allocator));
     }
 
     pub unsafe fn map(
@@ -34,7 +32,7 @@ impl KernelMapper {
         page: Page<Size4KiB>,
         flags: PageTableFlags,
     ) -> Result<MapperFlush<Size4KiB>, MapToError<Size4KiB>> {
-        self.inner_as_mut().map(page, flags)
+        self.inner.as_mut().unwrap().map(page, flags)
     }
 
     pub unsafe fn map_phys(
@@ -43,7 +41,7 @@ impl KernelMapper {
         frame: PhysFrame<Size4KiB>,
         flags: PageTableFlags,
     ) -> Result<MapperFlush<Size4KiB>, MapToError<Size4KiB>> {
-        self.inner_as_mut().map_phys(page, frame, flags)
+        self.inner.as_mut().unwrap().map_phys(page, frame, flags)
     }
 
     pub unsafe fn identity_map(
@@ -51,67 +49,66 @@ impl KernelMapper {
         frame: PhysFrame<Size4KiB>,
         flags: PageTableFlags,
     ) -> Result<MapperFlush<Size4KiB>, MapToError<Size4KiB>> {
-        self.inner_as_mut().identity_map(frame, flags)
-    }
-
-    pub fn allocate_frames_range(&mut self, length: u64) -> Option<PhysFrame> {
-        self.inner_as_mut().allocate_frames_range(length)
+        self.inner.as_mut().unwrap().identity_map(frame, flags)
     }
 
     pub fn translate(&self, addr: VirtAddr) -> Option<PhysAddr> {
-        self.inner.as_ref().unwrap().translate(addr)
-    }
-
-    #[inline]
-    fn inner_as_mut(&mut self) -> &mut InnerKernelMapper {
-        self.inner.as_mut().unwrap()
+        self.inner.as_ref().unwrap().translate_addr(addr)
     }
 }
 
-struct InnerKernelMapper {
+pub struct PageMapper {
     table: OffsetPageTable<'static>,
-    allocator: BuddyFrameAllocator,
+    allocator: &'static Mutex<FrameAllocator>,
 }
 
-impl InnerKernelMapper {
-    unsafe fn map(
+impl PageMapper {
+    pub fn new(
+        phys_offset: VirtAddr,
+        page_table: &'static mut PageTable,
+        allocator: &'static Mutex<FrameAllocator>,
+    ) -> Self {
+        let table = unsafe { OffsetPageTable::new(page_table, phys_offset) };
+
+        Self { table, allocator }
+    }
+
+    pub unsafe fn map(
         &mut self,
         page: Page<Size4KiB>,
         flags: PageTableFlags,
     ) -> Result<MapperFlush<Size4KiB>, MapToError<Size4KiB>> {
-        let frame = self
-            .allocator
+        let mut allocator = self.allocator.lock();
+
+        let frame = allocator
             .allocate_frame()
             .ok_or(MapToError::FrameAllocationFailed)?;
 
-        self.table.map_to(page, frame, flags, &mut self.allocator)
+        self.table.map_to(page, frame, flags, &mut *allocator)
     }
 
-    unsafe fn map_phys(
+    pub unsafe fn map_phys(
         &mut self,
         page: Page<Size4KiB>,
         frame: PhysFrame<Size4KiB>,
         flags: PageTableFlags,
     ) -> Result<MapperFlush<Size4KiB>, MapToError<Size4KiB>> {
-        self.table.map_to(page, frame, flags, &mut self.allocator)
+        let mut allocator = self.allocator.lock();
+
+        self.table.map_to(page, frame, flags, &mut *allocator)
     }
 
-    unsafe fn identity_map(
+    pub unsafe fn identity_map(
         &mut self,
         frame: PhysFrame<Size4KiB>,
         flags: PageTableFlags,
     ) -> Result<MapperFlush<Size4KiB>, MapToError<Size4KiB>> {
-        self.table.identity_map(frame, flags, &mut self.allocator)
+        let mut allocator = self.allocator.lock();
+
+        self.table.identity_map(frame, flags, &mut *allocator)
     }
 
-    fn allocate_frames_range(&mut self, length: u64) -> Option<PhysFrame> {
-        self.allocator.allocate_frames_range(length)
-    }
-
-    fn translate(&self, addr: VirtAddr) -> Option<PhysAddr> {
-        match self.table.translate(addr) {
-            TranslateResult::Mapped { frame, .. } => Some(frame.start_address()),
-            _ => None,
-        }
+    pub fn translate_addr(&self, addr: VirtAddr) -> Option<PhysAddr> {
+        self.table.translate_addr(addr)
     }
 }

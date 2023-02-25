@@ -4,7 +4,7 @@ use x2apic::lapic;
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame};
 use x86_64::{PhysAddr, VirtAddr};
 
-use crate::memory::KERNEL_MAPPER;
+use crate::memory::KERNEL_PAGE_MAPPER;
 
 pub static LOCAL_APIC: LocalApic = LocalApic::empty();
 
@@ -75,7 +75,7 @@ impl LocalApic {
 unsafe impl Sync for LocalApic {}
 
 unsafe fn map_memory(phys_addr: PhysAddr, virt_addr: VirtAddr) {
-    let mut mapper = KERNEL_MAPPER.lock();
+    let mut mapper = KERNEL_PAGE_MAPPER.lock();
 
     let page = Page::containing_address(virt_addr);
     let frame = PhysFrame::containing_address(phys_addr);

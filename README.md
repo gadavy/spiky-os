@@ -10,8 +10,6 @@ reading the [OSDev wiki](https://wiki.osdev.org/) along with many open source ke
 
 ## Quick start
 
-On macOS, do the following:
-
 1. Clone repository:
     ```shell
     git clone https://github.com/gadavy/spiky-os.git
@@ -19,7 +17,11 @@ On macOS, do the following:
 
 2. Install dependencies:
     ```shell
-    brew install nasm
+    # Linux
+    apt install nasm qemu
+
+    # MacOS
+    brew install nasm qemu
     ```
 
 3. Build and run the kernel in QEMU:

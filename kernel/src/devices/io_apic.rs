@@ -10,7 +10,7 @@ use x2apic::ioapic::{IrqFlags, RedirectionTableEntry};
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame};
 use x86_64::{PhysAddr, VirtAddr};
 
-use crate::memory::KERNEL_MAPPER;
+use crate::memory::KERNEL_PAGE_MAPPER;
 
 pub static IO_APICS: IoApics = IoApics::empty();
 
@@ -140,7 +140,7 @@ unsafe fn map_memory(phys_addr: PhysAddr, virt_addr: VirtAddr) {
     let frame = PhysFrame::containing_address(phys_addr);
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_CACHE;
 
-    let mut mapper = KERNEL_MAPPER.lock();
+    let mut mapper = KERNEL_PAGE_MAPPER.lock();
 
     if mapper.translate(page.start_address()).is_none() {
         mapper

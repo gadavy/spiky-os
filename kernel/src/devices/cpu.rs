@@ -8,7 +8,7 @@ use x86_64::{PhysAddr, VirtAddr};
 
 use crate::ap_entry;
 use crate::devices::local_apic;
-use crate::memory::KERNEL_MAPPER;
+use crate::memory::{KERNEL_FRAME_ALLOCATOR, KERNEL_PAGE_MAPPER};
 use crate::prelude::*;
 
 static AP_READY: AtomicBool = AtomicBool::new(false);
@@ -41,9 +41,9 @@ pub(super) fn init_ap_cores(phys_mem_offset: VirtAddr, ap_processors: &[Processo
 }
 
 fn allocate_ap_stack(phys_mem_offset: VirtAddr, pages_count: u64) -> Option<VirtAddr> {
-    let mut mapper = KERNEL_MAPPER.lock();
-
-    let start_frame = mapper.allocate_frames_range(pages_count)?;
+    let start_frame = KERNEL_FRAME_ALLOCATOR
+        .lock()
+        .allocate_frames_range(pages_count)?;
 
     let stack_start = phys_mem_offset + start_frame.start_address().as_u64();
     let stack_end = stack_start + pages_count * PAGE_SIZE;
@@ -57,7 +57,7 @@ unsafe fn allocate_trampoline(virt_addr: VirtAddr) {
     let frame = PhysFrame::containing_address(phys_addr);
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
 
-    let mut mapper = KERNEL_MAPPER.lock();
+    let mut mapper = KERNEL_PAGE_MAPPER.lock();
 
     assert!(mapper.translate(virt_addr).is_none());
 

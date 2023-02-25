@@ -1,5 +1,7 @@
 use core::fmt::Write;
 
+// TODO: add core id to log?
+
 pub fn write_log(record: &log::Record) {
     write_serial(record);
     write_display(record);

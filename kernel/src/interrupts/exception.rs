@@ -1,6 +1,8 @@
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
 
+// TODO: on exception kill current process
+
 /// # Panics
 ///
 /// Will panic if an exception is received.

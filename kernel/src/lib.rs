@@ -17,7 +17,7 @@ mod memory;
 mod paging;
 mod prelude;
 
-static PHYS_MEMORY_OFFSET: Once<u64> = Once::new();
+static PHYS_OFFSET: Once<u64> = Once::new();
 static TLS_TEMPLATE: Once<TlsTemplate> = Once::new();
 
 pub fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
@@ -25,7 +25,7 @@ pub fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     devices::init_early(info.framebuffer.as_mut());
     logger::init(debug::write_log);
 
-    let phys_mem_offset = info
+    let phys_offset = info
         .physical_memory_offset
         .into_option()
         .expect("Physical memory offset not specified in boot information");
@@ -35,7 +35,7 @@ pub fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
         .into_option()
         .expect("TLS template not specified in boot information");
 
-    PHYS_MEMORY_OFFSET.call_once(|| phys_mem_offset);
+    PHYS_OFFSET.call_once(|| phys_offset);
     TLS_TEMPLATE.call_once(|| tls_template);
 
     // Init GDT and IDT early before TLS initialized.
@@ -43,17 +43,18 @@ pub fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
     idt::init_early();
 
     // Init memory and TLS.
-    memory::init(phys_mem_offset, &info.memory_regions);
+    memory::init(phys_offset, &info.memory_regions);
     paging::init(0, tls_template);
 
     // Init GDT and IDT with TLS.
     gdt::init();
-    idt::init_bsp(phys_mem_offset);
+    idt::init_bsp(phys_offset);
 
     // Init kernel heap.
     memory::init_heap();
 
-    devices::init(phys_mem_offset, info.rsdp_addr.into_option());
+    // Init devices.
+    devices::init(phys_offset, info.rsdp_addr.into_option());
 
     interrupts::enable();
 
@@ -67,7 +68,7 @@ pub fn entry(info: &'static mut bootloader_api::BootInfo) -> ! {
 fn ap_entry(cpu_id: u64) -> ! {
     log::info!("AP CORE_{cpu_id} starting...");
 
-    let phys_mem_offset = PHYS_MEMORY_OFFSET
+    let phys_mem_offset = PHYS_OFFSET
         .get()
         .copied()
         .expect("Physical memory offset should be initialized");
@@ -88,7 +89,10 @@ fn ap_entry(cpu_id: u64) -> ! {
     gdt::init();
     idt::init_ap(phys_mem_offset);
 
+    // Init devices.
     devices::init_ap();
+
+    log::info!("AP CORE_{cpu_id} started...");
 
     loop {
         interrupts::hlt();

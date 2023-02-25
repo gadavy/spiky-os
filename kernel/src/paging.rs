@@ -3,7 +3,7 @@ use x86_64::registers::model_specific::FsBase;
 use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
-use crate::memory::KERNEL_MAPPER;
+use crate::memory::KERNEL_PAGE_MAPPER;
 use crate::prelude::*;
 
 const TLS_ALIGN: u64 = 0xf;
@@ -27,7 +27,7 @@ pub fn init(cpu_id: u64, mut tls: TlsTemplate) {
         | PageTableFlags::NO_EXECUTE
         | PageTableFlags::GLOBAL;
 
-    let mut mapper = KERNEL_MAPPER.lock();
+    let mut mapper = KERNEL_PAGE_MAPPER.lock();
 
     for page in page_range {
         unsafe {

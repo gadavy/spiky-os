@@ -1,14 +1,13 @@
 use x86_64::structures::idt::InterruptDescriptorTable;
 use x86_64::{PrivilegeLevel, VirtAddr};
 
-use crate::memory::KERNEL_MAPPER;
+use crate::memory::KERNEL_FRAME_ALLOCATOR;
 
-use super::interrupts::exception;
-use super::interrupts::irq;
-use super::prelude::*;
+use crate::interrupts::{exception, irq};
+use crate::prelude::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Early
+// Early idt
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static mut EARLY_IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
@@ -43,34 +42,29 @@ pub fn init_early() {
 static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 
 /// Initializes a BSP IDT.
-pub fn init_bsp(phys_mem_offset: u64) {
+pub fn init_bsp(phys_offset: u64) {
     log::trace!("Init BSP IDT");
 
-    unsafe { init_generic(true, VirtAddr::new(phys_mem_offset), &mut IDT) };
+    unsafe { init_generic(true, VirtAddr::new(phys_offset), &mut IDT) };
 }
 
 /// Initializes a BSP IDT.
-pub fn init_ap(phys_mem_offset: u64) {
+pub fn init_ap(phys_offset: u64) {
     log::trace!("Init AP IDT");
 
-    unsafe { init_generic(false, VirtAddr::new(phys_mem_offset), &mut IDT) };
+    unsafe { init_generic(false, VirtAddr::new(phys_offset), &mut IDT) };
 }
 
-unsafe fn init_generic(
-    is_bsp: bool,
-    phys_mem_offset: VirtAddr,
-    idt: &mut InterruptDescriptorTable,
-) {
-    let mut mapper = KERNEL_MAPPER.lock();
-
+unsafe fn init_generic(is_bsp: bool, phys_offset: VirtAddr, idt: &mut InterruptDescriptorTable) {
     // Allocate 64 KiB of stack space for the backup stack.
     let page_count = KERNEL_BACKUP_STACK_SIZE / PAGE_SIZE;
 
-    let frame = mapper
+    let frame = KERNEL_FRAME_ALLOCATOR
+        .lock()
         .allocate_frames_range(page_count)
         .expect("failed to allocate pages for backup interrupt stack");
 
-    let stack_start = phys_mem_offset + frame.start_address().as_u64();
+    let stack_start = phys_offset + frame.start_address().as_u64();
     let stack_end = stack_start + KERNEL_BACKUP_STACK_SIZE;
 
     super::gdt::TSS.interrupt_stack_table[usize::from(KERNEL_BACKUP_STACK_INDEX)] = stack_end;

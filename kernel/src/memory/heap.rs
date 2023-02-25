@@ -2,7 +2,7 @@ use slab_allocator_rs::LockedHeap;
 use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
-use crate::memory::KERNEL_MAPPER;
+use crate::memory::KERNEL_PAGE_MAPPER;
 use crate::prelude::*;
 
 #[cfg_attr(not(test), global_allocator)]
@@ -20,7 +20,7 @@ pub fn init() {
 
     for page in page_range {
         unsafe {
-            KERNEL_MAPPER
+            KERNEL_PAGE_MAPPER
                 .lock()
                 .map(page, flags)
                 .expect("failed to map heap memory")
