@@ -115,6 +115,7 @@ impl FrameAllocator {
         unsafe { core::slice::from_raw_parts_mut(data, length) }
     }
 
+    #[cfg(test)]
     fn entries(&self) -> &[BuddyEntry] {
         let data = self.table.as_mut_ptr::<BuddyEntry>();
         let length = (PAGE_SIZE / BuddyEntry::SIZE) as usize;
@@ -266,11 +267,11 @@ impl BuddyEntry {
         unsafe { addr.as_ptr::<u8>().read().bit(bit_index) }
     }
 
-    fn set_page_usage(&self, page_index: u64, is_used: bool) {
+    fn set_page_usage(&self, index: u64, is_used: bool) {
         use bit::BitIndex;
 
-        let byte_index = page_index / 8;
-        let bit_index = (page_index % 8) as usize;
+        let byte_index = index / 8;
+        let bit_index = (index % 8) as usize;
 
         let addr = self.start_virt + byte_index;
 

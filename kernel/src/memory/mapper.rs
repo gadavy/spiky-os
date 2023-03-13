@@ -23,8 +23,9 @@ impl KernelMapper {
         page_table: &'static mut PageTable,
         allocator: &'static Mutex<FrameAllocator>,
     ) {
-        self.inner
-            .replace(PageMapper::new(phys_offset, page_table, allocator));
+        let mapper = PageMapper::new(phys_offset, page_table, allocator);
+
+        self.inner.replace(mapper);
     }
 
     pub unsafe fn map(

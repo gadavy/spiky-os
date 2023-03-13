@@ -1,3 +1,4 @@
+use bootloader_boot_config::{BootConfig, LevelFilter};
 use std::path::PathBuf;
 
 fn main() {
@@ -7,9 +8,13 @@ fn main() {
     // https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies
     let kernel = PathBuf::from(std::env::var_os("CARGO_BIN_FILE_KERNEL_kernel").unwrap());
 
+    let mut config = BootConfig::default();
+    config.log_level = LevelFilter::Warn;
+
     // create a UEFI disk image
     let uefi_path = out_dir.join("uefi.img");
     bootloader::UefiBoot::new(&kernel)
+        .set_boot_config(&config)
         .create_disk_image(&uefi_path)
         .unwrap();
 
