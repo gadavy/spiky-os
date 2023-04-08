@@ -17,6 +17,6 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     log::error!("{info}");
 
     loop {
-        core::hint::spin_loop()
+        core::hint::spin_loop();
     }
 }

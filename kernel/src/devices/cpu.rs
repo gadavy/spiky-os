@@ -104,7 +104,7 @@ unsafe fn start_core(ap: &Processor, phys_mem_offset: VirtAddr, page_table: Phys
     local_apic::LOCAL_APIC.send_start_ipi(ap_segment as u8, local_apic_id);
 
     log::trace!(">> Wait for trampoline ready");
-    while unsafe { ap_ready.read_volatile() } == 0 {
+    while ap_ready.read_volatile() == 0 {
         core::hint::spin_loop();
     }
 

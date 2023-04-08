@@ -9,17 +9,17 @@ name = "kernel"
 test = false
 
 [dependencies]
-spin = "0.9.4"
+spin = "0.9.8"
 log = "0.4.17"
-bootloader_api = "0.11.2"
+bootloader_api = "0.11.3"
 x86 = "0.52.0"
 x86_64 = "0.14.10"
 slab_allocator_rs = "1.0.2"
 acpi = "4.1.1"
 bit = "0.1.1"
 x2apic = "0.4.2"
-raw-cpuid = "10.6.1"
-pic8259 = "0.10.2"
+raw-cpuid = "10.7.0"
+pic8259 = "0.10.3"
 
 [profile.dev]
 panic = "abort"

@@ -8,12 +8,12 @@ edition = "2021"
 members = ["kernel"]
 
 [dependencies]
-clap = { version = "4.1.4", features = ["derive"] }
+clap = { version = "4.2.1", features = ["derive"] }
 ovmf-prebuilt = "0.1.0-alpha.1"
 
 [build-dependencies]
-bootloader = "0.11.2"
-bootloader-boot-config = "0.11.2"
+bootloader = "0.11.3"
+bootloader-boot-config = "0.11.3"
 kernel = { path = "kernel", artifact = "bin", target = "x86_64-unknown-none" }
 
 [profile.dev]
